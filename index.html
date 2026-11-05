@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="ja" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>店舗マップ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="店舗マップ">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('sm.theme') || 'auto'; } catch (e) { /* 既定のまま */ }</script>
+<style>
+:root, :root[data-theme="dark"] {
+  --bg: #151618; --card: #1e1f22; --card-2: #26272b; --raised: #2d2e32; --input: #131416;
+  --text: #d8dbe0; --muted: #9aa0a6; --faint: #6f757c; --border: #303236; --border-strong: #43464b;
+  --blue: #8ab4f8; --accent: #3f72d8; --accent-hover: #5584e6; --on-accent: #f1f3f4; --on-tint: #33415c;
+  --green: #81c995; --danger: #f28b82; --warn: #fdd663; --warn-bg: #4a3f1a; --bad-bg: #4a2523; --ok-bg: #1f3a29;
+  --bar-bg: rgba(21,22,24,.92); --shadow: rgba(0,0,0,.5); --tile-filter: brightness(.72) contrast(1.1) saturate(.6);
+  --map-bg: #0f1011; color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f6f7f9; --card: #ffffff; --card-2: #f1f3f4; --raised: #e8eaed; --input: #ffffff;
+  --text: #202124; --muted: #5f6368; --faint: #80868b; --border: #dadce0; --border-strong: #c4c7cc;
+  --blue: #1a73e8; --accent: #1a73e8; --accent-hover: #1765cc; --on-accent: #ffffff; --on-tint: #e8f0fe;
+  --green: #188038; --danger: #d93025; --warn: #b06000; --warn-bg: #fef7e0; --bad-bg: #fce8e6; --ok-bg: #e6f4ea;
+  --bar-bg: rgba(255,255,255,.94); --shadow: rgba(60,64,67,.25); --tile-filter: none; --map-bg: #e5e3df; color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+    --bg: #f6f7f9; --card: #ffffff; --card-2: #f1f3f4; --raised: #e8eaed; --input: #ffffff;
+    --text: #202124; --muted: #5f6368; --faint: #80868b; --border: #dadce0; --border-strong: #c4c7cc;
+    --blue: #1a73e8; --accent: #1a73e8; --accent-hover: #1765cc; --on-accent: #ffffff; --on-tint: #e8f0fe;
+    --green: #188038; --danger: #d93025; --warn: #b06000; --warn-bg: #fef7e0; --bad-bg: #fce8e6; --ok-bg: #e6f4ea;
+    --bar-bg: rgba(255,255,255,.94); --shadow: rgba(60,64,67,.25); --tile-filter: none; --map-bg: #e5e3df; color-scheme: light;
+  }
+}
+:root { --rS: #ffd600; --rA: #f57c00; --rB: #689f38; --rC: #1e88e5; --rU: #8a8f96; --rX: #3a3b3f; --sheet-h: 50vh;
+  --top: calc(46px + max(8px, env(safe-area-inset-top))); }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; overscroll-behavior: none;
+  touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+button, input, select, textarea { font: inherit; color: var(--text); }
+button { background: var(--card-2); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 11px;
+  cursor: pointer; transition: background .15s, transform .05s, border-color .15s; }
+button:hover { background: var(--raised); border-color: var(--faint); }
+button:active { transform: translateY(1px); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary:hover { background: var(--accent-hover); }
+button.big { width: 100%; padding: 12px; font-size: 16px; font-weight: 600; border-radius: 10px; }
+button.on { background: var(--on-tint); border-color: var(--blue); }
+button:disabled { opacity: .5; cursor: default; }
+button.icon { display: inline-flex; align-items: center; justify-content: center; width: 38px; padding: 0; }
+button.icon svg { width: 20px; height: 20px; }
+input, select, textarea { background: var(--input); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; font-size: 16px; }
+select { padding-right: 4px; }
+input:hover, select:hover, textarea:hover { border-color: var(--border-strong); }
+textarea { width: 100%; min-height: 70px; resize: vertical; }
+a { color: var(--blue); }
+.hidden { display: none !important; }
+.muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 12px; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+
+header.top { position: fixed; z-index: 1000; top: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px;
+  padding-top: max(8px, env(safe-area-inset-top)); background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+header.top input { flex: 1; min-width: 0; }
+header.top select { max-width: 126px; }
+#map { position: fixed; top: var(--top); left: 0; right: 0; bottom: 0; background: var(--map-bg); }
+.leaflet-container { background: var(--map-bg); font: inherit; }
+.leaflet-tile-pane { filter: var(--tile-filter); }
+.leaflet-control-attribution { background: var(--bar-bg) !important; color: var(--muted) !important; }
+.leaflet-control-attribution a { color: var(--blue) !important; }
+.leaflet-bar a { background: var(--card-2) !important; color: var(--text) !important; border-color: var(--border) !important; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--card); color: var(--text); }
+
+.pin span { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid #f1f3f4; font-size: 12px; font-weight: 700; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.55); }
+.pin .rS { background: var(--rS); color: #222; width: 28px; height: 28px; font-size: 15px; }
+.pin .rA { background: var(--rA); } .pin .rB { background: var(--rB); } .pin .rC { background: var(--rC); }
+.pin .rU { background: var(--rU); } .pin .rX { background: var(--rX); border-color: #777; color: #ccc; }
+.pin .closed { opacity: .45; }
+.pin .sel { outline: 3px solid var(--blue); outline-offset: 2px; }
+.pin .num { background: var(--accent); color: #fff; }
+.pin-p span { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px;
+  background: #5c6bc0; color: #fff; font-size: 11px; font-weight: 700; border: 1px solid #c5cae9; }
+.pin-o span { display: block; width: 16px; height: 16px; border-radius: 50%; background: #4285f4; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(66,133,244,.3); }
+
+.b { display: inline-block; padding: 0 8px; border-radius: 10px; font-size: 12px; line-height: 21px; background: var(--raised); color: var(--text); white-space: nowrap; }
+.b.rS { background: var(--rS); color: #222; font-weight: 700; } .b.rA { background: var(--rA); color: #fff; }
+.b.rB { background: var(--rB); color: #fff; } .b.rC { background: var(--rC); color: #fff; }
+.b.rU { background: var(--rU); color: #111; } .b.rX { background: var(--rX); color: #ddd; }
+.b.warn { background: var(--warn-bg); color: var(--warn); } .b.bad { background: var(--bad-bg); color: var(--danger); }
+.b.num { background: var(--accent); color: #fff; min-width: 24px; text-align: center; }
+.sheet { position: fixed; z-index: 1001; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--border-strong);
+  border-radius: 14px 14px 0 0; box-shadow: 0 -6px 20px var(--shadow); padding-bottom: env(safe-area-inset-bottom); }
+.grab { height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.grab::before { content: ""; width: 40px; height: 4px; border-radius: 2px; background: var(--border-strong); transition: background .15s; }
+.grab:hover::before { background: var(--faint); }
+nav.tabs { display: flex; gap: 4px; padding: 0 8px 6px; }
+nav.tabs button { flex: 1; padding: 8px 2px; font-size: 13px; }
+.body { max-height: var(--sheet-h); overflow-y: auto; padding: 2px 12px 16px; }
+.body, .vbox { scrollbar-color: auto; scrollbar-width: auto; }
+.body::-webkit-scrollbar, .vbox::-webkit-scrollbar { width: 8px; }
+.body::-webkit-scrollbar-thumb, .vbox::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+#card { z-index: 1002; }
+#card .body { max-height: 64vh; }
+.body { transition: max-height .26s cubic-bezier(.2,.8,.2,1); }
+#card.tall .body { max-height: calc(100vh - var(--top) - 110px); }
+#panel.tall .body { max-height: calc(100vh - var(--top) - 100px); }
+.card-head { display: flex; gap: 8px; align-items: flex-start; padding: 0 12px 6px; }
+.card-head h2 { font-size: 17px; margin: 2px 0 0; flex: 1; }
+h3 { font-size: 13px; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stat { background: var(--card-2); border-radius: 8px; padding: 6px 8px; }
+.stat .k { font-size: 11px; color: var(--muted); } .stat .v { font-size: 15px; font-weight: 600; }
+.actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 4px; }
+.actions a, .actions button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px; font-size: 12px;
+  border-radius: 10px; text-decoration: none; background: var(--card-2); border: 1px solid var(--border-strong); color: var(--text); }
+.actions a:hover, .actions button:hover { background: var(--raised); }
+.actions .go { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.actions .go:hover { background: var(--accent-hover); }
+.actions svg { width: 20px; height: 20px; }
+.list { display: flex; flex-direction: column; gap: 4px; }
+.item { display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 8px; background: var(--card-2); cursor: pointer; transition: background .15s; }
+.item:hover { background: var(--raised); }
+.item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.vbox { max-height: 280px; overflow-y: auto; background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 6px;
+  display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 1px 3px var(--shadow); }
+.visit { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; white-space: pre-wrap; }
+.visit .vh { display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+.memo { background: var(--card-2); border-radius: 8px; padding: 7px 9px; white-space: pre-wrap; }
+table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.t th, table.t td { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: right; }
+table.t th:first-child, table.t td:first-child { text-align: left; }
+table.t tr:hover td { background: var(--card-2); }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chips button { padding: 5px 11px; border-radius: 16px; font-size: 13px; }
+.seg { display: flex; gap: 0; }
+.seg button { border-radius: 0; flex: 1; padding: 7px 4px; }
+.seg button:first-child { border-radius: 8px 0 0 8px; } .seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button + button { border-left: none; }
+.over { color: var(--danger); }
+details { background: var(--card-2); border-radius: 10px; padding: 0 10px; margin-top: 12px; }
+details summary { cursor: pointer; padding: 9px 0; color: var(--muted); font-weight: 600; font-size: 13px; }
+details[open] { padding-bottom: 10px; }
+.form { background: var(--card-2); border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px; margin-top: 8px; animation: up .15s ease-out; }
+.form label { color: var(--muted); font-size: 12px; }
+.ext svg { width: 12px; height: 12px; vertical-align: -1px; margin-left: 2px; }
+.navlink { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 8px; background: var(--accent); color: var(--on-accent); text-decoration: none; white-space: nowrap; }
+.navlink:hover { background: var(--accent-hover); }
+.vh-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.scroll-x { flex-wrap: nowrap; overflow-x: auto; padding: 4px 0 2px; scrollbar-width: none; }
+.scroll-x::-webkit-scrollbar { display: none; }
+.scroll-x button { flex: none; }
+.group { display: flex; justify-content: space-between; width: 100%; margin: 6px 0 2px; font-weight: 600; font-size: 14px; color: var(--text);
+  padding: 9px 12px; border-radius: 8px; background: var(--raised); }
+.list-head { position: sticky; top: -2px; z-index: 2; background: var(--card); margin: 0 -12px 6px; padding: 2px 12px 8px;
+  border-bottom: 1px solid var(--border); }
+.b.rk { cursor: pointer; box-shadow: 0 0 0 1px transparent; transition: box-shadow .15s; }
+.b.rk:hover { box-shadow: 0 0 0 2px var(--blue); }
+.rk-pick { margin: -2px 0 4px 34px; animation: up .15s ease-out; }
+.rk-pick button { padding: 6px 2px; font-size: 13px; }
+.pin-new span { display: block; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #ea4335;
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.picked { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px; background: var(--card-2); }
+
+#filters { position: fixed; z-index: 1003; top: var(--top); left: 8px; right: 8px; background: var(--card); border: 1px solid var(--border-strong);
+  border-radius: 12px; padding: 4px 12px 12px; box-shadow: 0 8px 24px var(--shadow); max-height: 70vh; overflow-y: auto; }
+#mode { position: fixed; z-index: 1004; top: calc(var(--top) + 8px); left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--on-accent);
+  padding: 7px 14px; border-radius: 16px; box-shadow: 0 4px 12px var(--shadow); cursor: pointer; white-space: nowrap; }
+#toast { position: fixed; z-index: 2000; top: calc(var(--top) + 8px); right: 10px; max-width: 80vw; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+#toast div { background: var(--raised); border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 12px; animation: up .2s ease-out; box-shadow: 0 4px 12px var(--shadow); }
+#toast div.err { border-color: var(--danger); color: var(--danger); }
+body.busy { cursor: progress; }
+#saving { position: fixed; z-index: 2001; top: calc(var(--top) + 8px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 16px; background: var(--raised); border: 1px solid var(--border-strong); box-shadow: 0 4px 12px var(--shadow); white-space: nowrap; }
+#saving i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#pending { position: fixed; z-index: 2001; top: calc(var(--top) + 8px); left: 50%; transform: translateX(-50%); padding: 7px 14px; border-radius: 16px;
+  background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); box-shadow: 0 4px 12px var(--shadow); white-space: nowrap; cursor: pointer; }
+.pin-o.last span { background: #9aa0a6; box-shadow: 0 0 0 5px rgba(154,160,166,.3); }
+#filters:not(.hidden) { animation: drop .2s ease-out; }
+.search { position: relative; flex: 1; min-width: 0; display: flex; }
+.search input { flex: 1; min-width: 0; padding-right: 30px; }
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+#qClear { position: absolute; right: 2px; top: 50%; margin-top: -15px; width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+#qClear:hover { background: var(--raised); color: var(--text); }
+#qClear svg { width: 18px; height: 18px; }
+#setup { position: fixed; z-index: 1900; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+#setup .box { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border-strong); border-radius: 14px; padding: 18px; }
+#setup h2 { font-size: 17px; margin: 0 0 6px; }
+#setup textarea { margin: 10px 0; min-height: 96px; font-size: 16px; }
+button.danger { color: var(--danger); margin-left: 6px; }
+button.danger.armed { background: var(--bad-bg); border-color: var(--danger); }
+.vedit { margin-left: 2px; padding: 0 9px; font-size: 12px; line-height: 20px; border-radius: 10px; }
+.body { overscroll-behavior: contain; }
+@keyframes up { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes drop { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (min-width: 820px) {
+  .sheet { left: auto; width: 430px; right: 12px; bottom: 12px; border-radius: 14px; border: 1px solid var(--border-strong); }
+  :root { --sheet-h: 70vh; }
+  #filters { left: auto; width: 430px; }
+  header.top select { max-width: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <select id="region" aria-label="地域"></select>
+  <div class="search">
+    <input id="q" type="search" placeholder="店名検索" aria-label="店名で検索">
+    <button id="qClear" class="hidden" title="消す" aria-label="検索を消す"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.7 12.3-1.4 1.4L12 13.4l-2.3 2.3-1.4-1.4 2.3-2.3-2.3-2.3 1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3z"/></svg></button>
+  </div>
+  <button id="btnFilter" class="icon" title="絞り込み" aria-label="絞り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></button>
+  <button id="btnLocate" class="icon" title="現在地" aria-label="現在地"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button id="btnTheme" class="icon" title="表示の明るさ" aria-label="表示の明るさ"></button>
+</header>
+<div id="map"></div>
+<div id="mode" class="hidden" title="タップでやめる"></div>
+
+<div id="filters" class="hidden">
+  <div class="grab" data-close="filters" aria-label="閉じる"></div>
+  <h3 style="margin-top:4px">ランク</h3><div class="chips" id="fRanks"></div>
+  <h3>ジャンル</h3><div class="chips" id="fGenres"></div>
+  <h3>表示</h3>
+  <div class="chips">
+    <button data-f="showExcluded">☠ 行かない店</button>
+    <button data-f="showClosed">閉店</button>
+    <button data-f="showParking">駐車場</button>
+    <button data-f="onlyStale">しばらく行ってない店だけ</button>
+  </div>
+  <div class="row" style="margin-top:12px"><span class="grow muted" id="fCount"></span><button id="fClose" class="primary">閉じる</button></div>
+</div>
+
+<section id="panel" class="sheet">
+  <div class="grab" data-close="panel" aria-label="閉じる"></div>
+  <nav class="tabs">
+    <button data-tab="list">一覧</button>
+    <button data-tab="route">ルート</button>
+    <button data-tab="stats">分析</button>
+    <button data-tab="check">チェック</button>
+    <button data-tab="add">＋店舗</button>
+  </nav>
+  <div class="body hidden" id="tabBody"></div>
+</section>
+
+<section id="card" class="sheet hidden">
+  <div class="grab" data-close="card" aria-label="閉じる"></div>
+  <div class="card-head"><h2 id="cName"></h2><button id="cClose" class="icon" aria-label="閉じる" title="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="body" id="cBody"></div>
+</section>
+
+<div id="setup" class="hidden"><div class="box">
+  <h2>店舗マップにつなぐ</h2>
+  <div class="muted small">スプシのメニュー「接続コードを作る」で出たコードを貼ってください。最初の1回だけです。</div>
+  <textarea id="sCode" aria-label="接続コード" placeholder="接続コード" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+  <button id="sGo" class="primary big">つなぐ</button>
+</div></div>
+
+<div id="saving" class="hidden" role="status"><i></i><span id="waitText"></span></div>
+<div id="pending" class="hidden" role="status"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const RANKS5 = ['S', 'A', 'B', 'C', '未評価'];
+const RANK_POINT = { S: 5, A: 4, B: 3, C: 2, '未評価': 1, '-': 0 };
+const RANK_CLASS = { S: 'rS', A: 'rA', B: 'rB', C: 'rC', '未評価': 'rU', '-': 'rX' };
+const GENRE_MARK = { 'ホムセン': 'ホ', 'ドラッグストア': '薬', 'ディスカウント': 'デ', 'スーパー': 'ス', '家電量販店': '電', 'その他': '他', '書店': '書', '回収チェーン': '回' };
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const ICON = {
+  ext: '<span class="ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="vh-sr">(新しいタブで開く)</span></span>',
+  nav: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></svg>',
+  map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
+};
+const THEME_NAME = { auto: '自動(端末に合わせる)', light: 'ライト', dark: 'ダーク' };
+
+const S = {
+  data: null, byId: {}, visitsBy: {}, region: '', q: '', markers: {},
+  f: { ranks: new Set(RANKS5), genres: null, showExcluded: false, showClosed: false, showParking: true, onlyStale: false },
+  tab: null, open: null, origin: null, mode: null, listLimit: 50, listSort: 'score', form: false, newPin: null,
+  route: { ids: [], result: null, date: '', start: 'now', hours: 5, stay: 30, back: true, limit: 30, minRank: 'C', skipDays: 0, note: '' },
+};
+let map, pinLayer, parkLayer, routeLayer, originMarker;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const yen = (n) => (n === '' || n == null || isNaN(n)) ? '—' : '¥' + Number(n).toLocaleString('ja-JP');
+const store = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem('sm.' + k)); localStorage.setItem('sm.' + k, JSON.stringify(v)); } catch (e) { return null; } };
+function toast(msg, err) {
+  const d = document.createElement('div'); d.textContent = msg; if (err) d.className = 'err';
+  $('#toast').appendChild(d); setTimeout(() => d.remove(), err ? 7000 : 3000);
+}
+let busy = 0;
+const SAVING = '保存中…';
+const WAIT_TEXT = {
+  getData: '読み込み中…', updateStore: SAVING, addVisit: SAVING, updateVisit: SAVING, deleteVisit: SAVING, restoreVisit: SAVING,
+  addStore: SAVING, saveRoute: SAVING, driveMinutes: '店までの時間を調べています…', planRoute: 'ルートを計算しています…', geocode: '場所を探しています…',
+};
+let waiting = 0;
+function showWait(n, text) {
+  waiting += n;
+  if (text) $('#waitText').textContent = text;
+  $('#saving').classList.toggle('hidden', waiting === 0);
+  updatePending();
+}
+const api = (name, ...args) => call(name, args, false);
+function call(name, args, quiet) {
+  busy++; document.body.classList.add('busy');
+  const wait = WAIT_TEXT[name];
+  if (wait) showWait(1, wait);
+  return new Promise((ok, ng) => {
+    const done = () => { if (wait) showWait(-1); if (--busy === 0) document.body.classList.remove('busy'); };
+    const fail = (e) => { done(); if (!quiet) toast((e && e.message) || String(e), true); ng(e); };
+    if (window.google && google.script && google.script.run) {
+      google.script.run.withSuccessHandler((r) => { done(); ok(r); }).withFailureHandler(fail)[name](...args);
+    } else if (window.MOCK) {
+      window.MOCK[name](...args).then((r) => { done(); ok(r); }, fail);
+    } else {
+      viaHttp(name, args).then((r) => { done(); ok(r); }, fail);
+    }
+  });
+}
+const netError = (msg) => Object.assign(new Error(msg), { net: true });
+async function viaHttp(name, args) {
+  const c = store('conn');
+  let r;
+  try {
+    r = await fetch(c.url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: c.key, fn: name, args }) });
+  } catch (e) { throw netError('通信できませんでした。電波を確認して、もう一度試してください'); }
+  let j;
+  try { j = await r.json(); } catch (e) { throw netError('通信が不安定です。少し待って、もう一度試してください'); }
+  if (!j.ok) {
+    if (j.e === '接続コードが違います') store('conn', null);
+    throw new Error(j.e);
+  }
+  return j.r;
+}
+function parseCode(text) {
+  try {
+    const [url, key] = atob(text.trim().replace(/-/g, '+').replace(/_/g, '/')).split('|');
+    const okUrl = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)
+      || (location.hostname === '127.0.0.1' && /^http:\/\/127\.0\.0\.1:\d+\//.test(url));
+    return okUrl && key ? { url, key } : null;
+  } catch (e) { return null; }
+}
+function showSetup() {
+  $('#setup').classList.remove('hidden');
+  $('#sGo').onclick = async () => {
+    const conn = parseCode($('#sCode').value);
+    if (!conn) return toast('接続コードの形が違います。全部コピーできているか確認してください', true);
+    store('conn', conn);
+    $('#sGo').disabled = true;
+    try {
+      const d = await api('getData');
+      store('cache', d);
+      S.loadedAt = Date.now();
+      load(d);
+      $('#setup').classList.add('hidden');
+      showStart();
+      sendOutbox();
+    } catch (e) { store('conn', null); $('#sGo').disabled = false; }
+  };
+}
+function km(a, b) {
+  const x = (b.lng - a.lng) * 111 * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+  const y = (b.lat - a.lat) * 111;
+  return Math.sqrt(x * x + y * y);
+}
+const pos = (s) => ({ lat: Number(s['緯度']), lng: Number(s['経度']) });
+const rankOf = (s) => (s['状態'] === '除外' ? '-' : s['ランク'] || '未評価');
+const toMin = (t) => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const hm = (m) => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const navUrl = (p) => 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + p.lat + ',' + p.lng;
+const searchUrl = (name) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name);
+const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const parseDay = (s) => new Date(String(s || '').slice(0, 10).replace(/\//g, '-') + 'T00:00:00');
+const validDay = (s) => !isNaN(parseDay(s).getTime());
+const md = (s) => { const d = parseDay(s); return isNaN(d.getTime()) ? String(s) : (d.getMonth() + 1) + '/' + d.getDate() + '(' + WD[d.getDay()] + ')'; };
+const addDays = (s, n) => { const d = parseDay(s); d.setDate(d.getDate() + n); return ymd(d); };
+function nowRounded() { const d = new Date(); return Math.ceil((d.getHours() * 60 + d.getMinutes()) / 15) * 15; }
+const T_FROM = 8 * 60, T_TO = 22 * 60;
+function timeOptions(sel, blank) {
+  const list = [];
+  for (let m = T_FROM; m <= T_TO; m += 15) list.push(hm(m));
+  if (sel && list.indexOf(sel) < 0) { list.push(sel); list.sort(); }
+  return (blank ? `<option value="">${blank}</option>` : '') + list.map((t) => `<option ${t === sel ? 'selected' : ''}>${t}</option>`).join('');
+}
+const genreList = () => [...new Set(S.data.stores.map((s) => s['ジャンル']).concat(Object.keys(GENRE_MARK)))];
+function pastDayOptions(sel) {
+  const t = S.data.today;
+  let h = '';
+  for (let i = 0; i <= 30; i++) {
+    const v = addDays(t, -i);
+    h += `<option value="${v}" ${v === sel ? 'selected' : ''}>${md(v)}${i === 0 ? ' 今日' : i === 1 ? ' 昨日' : ''}</option>`;
+  }
+  return h;
+}
+async function init() {
+  map = L.map('map', { zoomControl: true, tapHold: true }).setView([36.0, 139.6], 9);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  }).addTo(map);
+  pinLayer = L.layerGroup().addTo(map);
+  parkLayer = L.layerGroup().addTo(map);
+  routeLayer = L.layerGroup().addTo(map);
+  map.on('click', onMapClick);
+  map.on('contextmenu', (e) => { if (S.data) dropPin(e.latlng); });
+  bindUi();
+  setTheme(document.documentElement.dataset.theme);
+  const hosted = !(window.google && google.script) && !window.MOCK;  // 自前の画面(ホーム画面のアプリ)
+  if (hosted && !store('conn')) return showSetup();
+  map.on('dragstart', () => { S.userMoved = true; });
+  const cached = store('cache');
+  if (cached && cached.stores) { load(cached, true); showStart(); }
+  await refreshData();
+  if (!cached && S.data) showStart();
+  window.addEventListener('online', () => { sendOutbox(); if (S.stale) refreshData(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    sendOutbox();
+    if (S.stale || Date.now() - (S.loadedAt || 0) > 10 * 60000) refreshData();
+  });
+  sendOutbox();
+}
+async function refreshData() {
+  if (S.refreshing) return;
+  S.refreshing = true;
+  const quiet = !!S.data;
+  WAIT_TEXT.getData = quiet ? '最新に更新中…' : '読み込み中…';
+  try {
+    const d = await call('getData', [], quiet);
+    store('cache', d);
+    S.loadedAt = Date.now(); S.stale = false;
+    if (quiet) applyFresh(d); else load(d);
+  } catch (e) {
+    S.stale = true;
+    const hosted = !(window.google && google.script) && !window.MOCK;
+    if (hosted && !store('conn')) showSetup();
+    else if (quiet) toast('最新を取れませんでした。前回のデータを表示しています');
+  } finally { S.refreshing = false; }
+}
+function showStart() {
+  const last = store('lastPos');
+  if (!last || !navigator.geolocation) return;
+  if (!S.origin) showLastPos(last);
+  focusOn(last, 12);
+  goNear(last);
+  const go = () => { if (geo.watch === null) watchLocation(); };
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then((p) => { if (p.state !== 'denied') go(); }, go);
+  } else go();
+}
+function setData(d, fromCache) {
+  S.data = d;
+  S.byId = {}; d.stores.forEach((s) => { S.byId[s['店舗ID']] = s; });
+  d.visits = d.visits.map(withVisitFields);
+  d.deleted = d.deleted || [];
+  S.visitsBy = {};
+  d.visits.forEach((v) => { (S.visitsBy[v['店舗ID']] = S.visitsBy[v['店舗ID']] || []).push(v); });
+  Object.values(S.visitsBy).forEach(sortVisits);
+  const today = ymd(new Date());
+  if (fromCache && d.today < today) { d.today = today; d.stores.forEach((s) => restat(s['店舗ID'])); }
+  outbox.filter((op) => !op.failed).forEach((op) => applyLocal(op));
+}
+function load(d, fromCache) {
+  setData(d, fromCache);
+  const st = d.settings || {};
+  S.route.stay = Number(st['1店舗の滞在(分)']) || 30;
+  S.route.limit = Number(st['近場の上限(分)']) || 30;
+  S.route.date = d.today;
+  Object.assign(S.route, store('route') || {});
+  if (S.route.date < d.today) S.route.date = d.today;
+  const f = store('filters');
+  if (f) S.f = Object.assign(S.f, f, { ranks: new Set(f.ranks), genres: f.genres ? new Set(f.genres) : null });
+  S.region = store('region');
+  S.listSort = store('listSort') || 'score';
+  fillRegions();
+  if (S.region !== '全国' && !d.regions.includes(S.region)) { S.region = d.regions[0]; $('#region').value = S.region; }
+  buildFilterUi();
+  render(true);
+}
+function applyFresh(d) {
+  setData(d);
+  fillRegions();
+  if (S.region !== '全国' && !d.regions.includes(S.region)) { S.region = d.regions[0]; $('#region').value = S.region; }
+  buildFilterUi();
+  render(false);
+  if (S.open && !S.byId[S.open]) closeCard();
+  else if (S.open && !S.form) { const top = $('#cBody').scrollTop; renderCard(); $('#cBody').scrollTop = top; }
+}
+const sortVisits = (l) => l.sort((a, b) => String(b['日付']).localeCompare(String(a['日付'])) || String(b['開始']).localeCompare(String(a['開始'])));
+
+function bindUi() {
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('focusout', () => setTimeout(() => {
+    if (!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) window.scrollTo(0, 0);
+  }, 100));
+  $('#region').onchange = (e) => { S.region = e.target.value; store('region', S.region); render(true); };
+  $('#q').oninput = (e) => { S.q = e.target.value.trim(); $('#qClear').classList.toggle('hidden', !e.target.value); render(false); };
+  $('#qClear').onpointerdown = (e) => e.preventDefault();
+  $('#qClear').onclick = () => { $('#q').value = ''; S.q = ''; $('#qClear').classList.add('hidden'); render(false); };
+  $('#btnFilter').onclick = () => { closeCard(); closeTab(); $('#filters').classList.toggle('hidden'); };
+  $('#fClose').onclick = () => $('#filters').classList.add('hidden');
+  $('#btnLocate').onclick = () => locate(true);
+  $('#btnTheme').onclick = () => {
+    const order = ['auto', 'light', 'dark'];
+    const next = order[(order.indexOf(document.documentElement.dataset.theme) + 1) % 3];
+    setTheme(next); toast('表示: ' + THEME_NAME[next]);
+  };
+  $('#cClose').onclick = () => closeCard();
+  $('#mode').onclick = () => setMode(null);
+  $('#pending').onclick = () => { if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; } sendOutbox(); };
+  document.querySelectorAll('.grab').forEach((g) => {
+    g.onclick = () => ({ card: closeCard, panel: closeTab, filters: () => $('#filters').classList.add('hidden') })[g.dataset.close]();
+  });
+  swipeToClose($('#card'), '#cBody', (dy) => closeCard(dy), () => $('#card').classList.add('tall'));
+  swipeToClose($('#panel'), '#tabBody', (dy) => closeTab(dy), () => { if (S.tab) $('#panel').classList.add('tall'); else openTab(S.lastTab || 'list'); });
+  document.querySelectorAll('nav.tabs button').forEach((b) => { b.onclick = () => openTab(b.dataset.tab); });
+  document.querySelectorAll('#filters [data-f]').forEach((b) => {
+    b.onclick = () => { S.f[b.dataset.f] = !S.f[b.dataset.f]; saveFilters(); buildFilterUi(); render(false); };
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { if (S.mode) setMode(null); else closeAll(); }
+    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); }
+  });
+}
+
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('sm.theme', t); } catch (e) { /* 保存できなくても動く */ }
+  $('#btnTheme').innerHTML = ICON[t];
+  $('#btnTheme').title = '表示: ' + THEME_NAME[t] + '(タップで切り替え)';
+}
+
+function saveFilters() {
+  store('filters', Object.assign({}, S.f, { ranks: [...S.f.ranks], genres: S.f.genres ? [...S.f.genres] : null }));
+}
+
+function buildFilterUi() {
+  $('#fRanks').innerHTML = RANKS5.map((r) => `<button data-r="${r}" class="${S.f.ranks.has(r) ? 'on' : ''}">${r === 'S' ? '★S' : r}</button>`).join('');
+  const genres = [...new Set(S.data.stores.map((s) => s['ジャンル']))];
+  $('#fGenres').innerHTML = genres.map((g) => `<button data-g="${esc(g)}" class="${!S.f.genres || S.f.genres.has(g) ? 'on' : ''}">${esc(g)}</button>`).join('');
+  document.querySelectorAll('#fRanks button').forEach((b) => {
+    b.onclick = () => { const r = b.dataset.r; S.f.ranks.has(r) ? S.f.ranks.delete(r) : S.f.ranks.add(r); saveFilters(); buildFilterUi(); render(false); };
+  });
+  document.querySelectorAll('#fGenres button').forEach((b) => {
+    b.onclick = () => {
+      if (!S.f.genres) S.f.genres = new Set(genres);
+      const g = b.dataset.g; S.f.genres.has(g) ? S.f.genres.delete(g) : S.f.genres.add(g);
+      if (S.f.genres.size === genres.length) S.f.genres = null;
+      saveFilters(); buildFilterUi(); render(false);
+    };
+  });
+  document.querySelectorAll('#filters [data-f]').forEach((b) => b.classList.toggle('on', !!S.f[b.dataset.f]));
+}
+const FIXED_REGIONS = ['埼玉', '茨城', '群馬・栃木', '千葉', '東京・神奈川'];
+function areaOf(s) {
+  if (FIXED_REGIONS.includes(s['地域'])) return s['地域'];
+  return String(s['県'] || '').replace(/[府県]$/, '') || 'その他';
+}
+function fillRegions() {
+  const prefRank = (r) => prefOrder({ '県': r + '県' });
+  const rest = [...new Set(S.data.stores.map(areaOf))].filter((r) => !FIXED_REGIONS.includes(r));
+  S.data.regions = FIXED_REGIONS.concat(rest.sort((a, b) => prefRank(a) - prefRank(b)));
+  $('#region').innerHTML = S.data.regions.concat(['全国']).map((r) => `<option>${esc(r)}</option>`).join('');
+  $('#region').value = S.region;
+}
+function inRegion(s) { return S.region === '全国' || areaOf(s) === S.region; }
+function visible(s) {
+  if (!inRegion(s)) return false;
+  const st = s['状態'];
+  if (st === '閉店') return S.f.showClosed;
+  if (st === '除外') { if (!S.f.showExcluded) return false; }
+  else if (!S.f.ranks.has(s['ランク'] || '未評価')) return false;
+  if (S.f.genres && !S.f.genres.has(s['ジャンル'])) return false;
+  if (S.f.onlyStale && s['鮮度'] !== '要再訪確認') return false;
+  if (S.q && String(s['店名']).indexOf(S.q) < 0) return false;
+  return true;
+}
+function score(s) { return RANK_POINT[rankOf(s)] * 100000 + (Number(s['時給換算']) || Number(s['平均見込み利益']) || 0); }
+
+function pinIcon(s) {
+  const r = rankOf(s);
+  const routeIdx = S.route.result ? S.route.result.order.indexOf(s['店舗ID']) : -1;
+  let glyph = s['状態'] === '除外' ? '☠' : r === 'S' ? '★' : (GENRE_MARK[s['ジャンル']] || '・');
+  let cls = RANK_CLASS[r];
+  if (s['状態'] === '閉店') { glyph = '×'; cls += ' closed'; }
+  if (routeIdx >= 0) { glyph = routeIdx + 1; cls += ' num'; }
+  if (S.open === s['店舗ID']) cls += ' sel';
+  return L.divIcon({ className: 'pin', html: `<span class="${cls}">${glyph}</span>`, iconSize: r === 'S' ? [28, 28] : [24, 24] });
+}
+
+function render(fit) {
+  pinLayer.clearLayers(); parkLayer.clearLayers(); S.markers = {};
+  const shown = S.data.stores.filter((s) => visible(s) || (inRegion(s) && S.route.ids.indexOf(s['店舗ID']) >= 0));
+  shown.forEach((s) => {
+    const m = L.marker(pos(s), { icon: pinIcon(s), title: s['店名'], zIndexOffset: RANK_POINT[rankOf(s)] * 100 });
+    m.on('click', (e) => { L.DomEvent.stopPropagation(e); openCard(s['店舗ID']); });
+    m.addTo(pinLayer);
+    S.markers[s['店舗ID']] = m;
+  });
+  if (S.f.showParking) {
+    S.data.parking.filter((p) => S.region === '全国' || nearRegion(p)).forEach((p) => {
+      L.marker(pos(p), { icon: L.divIcon({ className: 'pin-p', html: `<span>${p['種類'] === '給油所' ? 'G' : 'P'}</span>`, iconSize: [18, 18] }) })
+        .bindPopup(`<b>${esc(p['名前'])}</b><br>${esc(p['メモ'] || '')}<br><a href="${navUrl(pos(p))}" target="_blank" rel="noopener">ナビ${ICON.ext}</a>`)
+        .addTo(parkLayer);
+    });
+  }
+  $('#fCount').textContent = `${shown.length}件を表示中`;
+  if (fit && shown.length) fitTo(shown.map(pos));
+  if (S.tab) renderTab();
+}
+function coveredBottom() {
+  if (window.innerWidth >= 820) return 0;  // 広い画面はシートが右に寄るので下は隠れない
+  const open = ['#card', '#panel'].map((q) => $(q)).filter((e) => !e.classList.contains('hidden'));
+  return Math.max(0, ...open.map((e) => e.offsetHeight));
+}
+function fitTo(points) {
+  if (!points.length) return;
+  map.fitBounds(L.latLngBounds(points).pad(0.05), { paddingTopLeft: [16, 16], paddingBottomRight: [16, coveredBottom() + 16] });
+}
+function focusOn(p, zoom) {
+  map.setView(p, zoom || Math.max(map.getZoom(), 13), { animate: false });
+  map.panBy([0, coveredBottom() / 2], { animate: false });
+}
+function nearRegion(p) { return S.data.stores.some((s) => inRegion(s) && km(pos(s), pos(p)) < 5); }
+
+function onMapClick(e) {
+  if (S.mode === 'origin') { setOrigin({ lat: e.latlng.lat, lng: e.latlng.lng, label: '地図で選んだ地点' }); setMode(null); openTab('route', true); }
+  else closeAll();
+}
+function closeAll() { closeCard(); closeTab(); $('#filters').classList.add('hidden'); }
+function setMode(m, text) {
+  S.mode = m;
+  $('#mode').textContent = text ? text + '  ✕' : '';
+  $('#mode').classList.toggle('hidden', !m);
+  if (m) { closeCard(); closeTab(); }
+}
+const geo = { watch: null, fix: null, waiters: [] };
+function watchLocation() {
+  geo.watch = navigator.geolocation.watchPosition((p) => {
+    geo.fix = { lat: p.coords.latitude, lng: p.coords.longitude };
+    onFix(geo.fix);
+    geo.waiters.splice(0).forEach((w) => w.ok());
+  }, () => {
+    navigator.geolocation.clearWatch(geo.watch);
+    geo.watch = null;
+    geo.waiters.splice(0).forEach((w) => w.ng());
+  }, { enableHighAccuracy: true, maximumAge: 30000 });
+}
+function getLocation() {
+  return new Promise((ok, ng) => {
+    if (!navigator.geolocation) return ng(new Error('この端末では現在地が使えません'));
+    const give = () => ok({ lat: geo.fix.lat, lng: geo.fix.lng, label: '現在地' });
+    if (geo.watch !== null && geo.fix) return give();
+    const w = {
+      ok: () => { clearTimeout(w.timer); give(); },
+      ng: () => { clearTimeout(w.timer); ng(new Error('現在地が取れませんでした。地図で選ぶか、住所で探してください')); },
+    };
+    w.timer = setTimeout(() => { geo.waiters = geo.waiters.filter((x) => x !== w); w.ng(); }, 15000);
+    geo.waiters.push(w);
+    if (geo.watch === null) watchLocation();
+  });
+}
+async function locate(move) {
+  try {
+    const o = await getLocation();
+    setOrigin(o);
+    if (move) focusOn(o, 12);
+    goNear(o);
+    return o;
+  } catch (e) { toast(e.message, true); return null; }
+}
+function goNear(o) {
+  if (!S.data) return;
+  const near = S.data.stores.reduce((a, s) => (!a || km(o, pos(s)) < km(o, pos(a)) ? s : a), null);
+  if (near && S.region !== '全国' && areaOf(near) !== S.region && km(o, pos(near)) < 50) {
+    S.region = areaOf(near); $('#region').value = S.region; store('region', S.region); render(false);
+    toast(`近くの地域「${S.region}」に切り替えました`);
+  }
+}
+function onFix(f) {
+  const last = store('lastPos');
+  if (!last || km(last, f) > 0.05 || Date.now() - (last.at || 0) > 60000) store('lastPos', { lat: f.lat, lng: f.lng, at: Date.now() });
+  if (S.origin && S.origin.label !== '現在地') return;
+  const first = !S.origin;
+  setOrigin({ lat: f.lat, lng: f.lng, label: '現在地' });
+  if (first && S.data) {
+    if (!S.userMoved && last && km(last, f) > 2) focusOn(f, 12);
+    goNear(f);
+  }
+}
+function setOrigin(o) {
+  S.origin = o;
+  if (originMarker && originMarker.options.last) { originMarker.remove(); originMarker = null; }
+  if (originMarker) { originMarker.setLatLng(o); return; }
+  originMarker = L.marker(o, { icon: L.divIcon({ className: 'pin-o', html: '<span></span>', iconSize: [16, 16] }), zIndexOffset: 2000 }).addTo(map);
+}
+function showLastPos(p) {
+  if (originMarker) return;
+  originMarker = L.marker(p, { last: true, icon: L.divIcon({ className: 'pin-o last', html: '<span></span>', iconSize: [16, 16] }), zIndexOffset: 2000, title: '前回の位置' }).addTo(map);
+}
+const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const shiftOf = (el) => { try { return new DOMMatrixReadOnly(getComputedStyle(el).transform).m42; } catch (e) { return 0; } };
+function slide(el, from, to, done) {
+  if (el._anim) { el._anim.onfinish = null; el._anim.cancel(); el._anim = null; }
+  if (calm() || !el.animate || from === to) { if (done) done(); return; }
+  const a = el._anim = el.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }],
+    { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+  a.onfinish = () => { el._anim = null; if (done) done(); a.cancel(); };
+}
+function sheetIn(el, dist) {
+  const from = el._closing ? shiftOf(el) : dist;
+  el._closing = false;
+  slide(el, from, 0);
+}
+function sheetOut(el, dist, from, done) {
+  el._closing = true;
+  slide(el, typeof from === 'number' ? from : shiftOf(el), dist, () => { el._closing = false; done(); });
+}
+function swipeToClose(el, bodySel, close, up) {
+  let st = null;
+  el.addEventListener('touchstart', (e) => {
+    st = null;
+    const body = el.querySelector(bodySel);
+    if (e.touches.length !== 1 || el.classList.contains('hidden')) return;
+    if (e.target.closest('input, textarea, select, .scroll-x')) return;
+    for (let n = e.target; n && n !== el; n = n.parentElement) if (n.scrollTop > 0) return;
+    const closed = body.classList.contains('hidden');
+    st = { x: e.touches[0].clientX, y: e.touches[0].clientY, dy: 0, on: false, t: 0, v: 0, closed, handle: closed || !body.contains(e.target),
+      max: el.id === 'card' ? el.offsetHeight : body.offsetHeight };
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    if (!st) return;
+    const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y;
+    if (!st.on) {
+      if (st.handle && dy < 0 && Math.abs(dy) >= Math.abs(dx)) {
+        e.preventDefault();
+        if (dy < -24) { st = null; up(); }
+        return;
+      }
+      if (dy < -4 || (Math.abs(dx) > 10 && Math.abs(dx) > dy)) { st = null; return; }
+      if (dy <= 0 || st.closed) return;
+      e.preventDefault();  // 中身の引っぱり(ゴム)を止める
+      if (dy < 8) return;
+      st.on = true;
+      if (el._anim) { el._anim.onfinish = null; el._anim.cancel(); el._anim = null; }
+    }
+    e.preventDefault();
+    const now = Date.now(), d = Math.min(st.max, Math.max(0, dy));
+    if (st.t) st.v = (d - st.dy) / Math.max(1, now - st.t);
+    st.dy = d; st.t = now;
+    el.style.transform = `translateY(${d}px)`;
+  }, { passive: false });
+  const end = () => {
+    const s = st; st = null;
+    if (!s || !s.on) return;
+    el.style.transform = '';
+    if (el.classList.contains('tall') && (s.dy > 60 || s.v > 0.5)) { el.classList.remove('tall'); slide(el, s.dy, 0); }
+    else if (s.dy > 90 || s.v > 0.5) close(s.dy);
+    else slide(el, s.dy, 0);
+  };
+  el.addEventListener('touchend', end);
+  el.addEventListener('touchcancel', end);
+}
+function openTab(t, keep) {
+  if (S.tab === t && !keep) return closeTab();
+  S.tab = S.lastTab = t;
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === S.tab));
+  const panel = $('#panel'), body = $('#tabBody');
+  const wasClosed = body.classList.contains('hidden') || panel._closing;
+  body.classList.remove('hidden');
+  closeCard(); $('#filters').classList.add('hidden'); renderTab(); body.scrollTop = 0;
+  if (wasClosed) sheetIn(panel, body.offsetHeight);
+}
+function closeTab(from) {
+  if (!S.tab) return;
+  S.tab = null;
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.remove('on'));
+  const body = $('#tabBody');
+  sheetOut($('#panel'), body.offsetHeight, from, () => { body.classList.add('hidden'); $('#panel').classList.remove('tall'); });
+}
+function renderTab() {
+  ({ list: tabList, route: tabRoute, stats: tabStats, check: tabCheck, add: tabAdd })[S.tab]($('#tabBody'));
+}
+
+function storeItem(s, extra, editable) {
+  const r = rankOf(s);
+  const sub = [s['県'] || '', s['市区町村'] || s['エリア'] || '', s['経過日数'] !== '' && s['経過日数'] != null ? s['経過日数'] + '日前' : ''].filter(Boolean).join('・');
+  return `<div class="item" data-id="${s['店舗ID']}"><span class="b ${RANK_CLASS[r]}${editable ? ' rk' : ''}" ${editable ? 'title="タップでランクを変える"' : ''}>${r === 'S' ? '★S' : r === '-' ? '☠' : esc(r)}</span>
+    <span class="name">${esc(s['店名'])}<br><span class="faint small">${esc(sub)}</span></span>
+    <span class="muted small" style="text-align:right">${extra != null ? extra : (s['時給換算'] ? '時給' + yen(s['時給換算']) : yen(s['平均見込み利益']))}</span></div>`;
+}
+function bindItems(el) {
+  el.querySelectorAll('.item[data-id]').forEach((d) => { d.onclick = () => { openCard(d.dataset.id); focusOn(pos(S.byId[d.dataset.id])); }; });
+  el.querySelectorAll('.item[data-id] .rk').forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const item = b.closest('.item');
+      const open = item.nextElementSibling && item.nextElementSibling.classList.contains('rk-pick');
+      el.querySelectorAll('.rk-pick').forEach((p) => p.remove());
+      if (open) return;
+      const s = S.byId[item.dataset.id];
+      const pick = document.createElement('div');
+      pick.className = 'rk-pick seg';
+      pick.innerHTML = RANKS5.map((x) => `<button data-rank="${x}" class="${(s['ランク'] || '未評価') === x && s['状態'] !== '除外' ? 'on' : ''}">${x === 'S' ? '★S' : x}</button>`).join('')
+        + `<button data-rank="-" class="${s['状態'] === '除外' ? 'on' : ''}">☠</button>`;
+      item.after(pick);
+      pick.querySelectorAll('button').forEach((x) => {
+        x.onclick = async () => {
+          const rk = x.dataset.rank;
+          const ch = rk === '-' ? { '状態': '除外' } : s['状態'] === '除外' ? { 'ランク': rk, '状態': '営業中' } : { 'ランク': rk };
+          enqueue('updateStore', [s['店舗ID'], ch, '']); redraw(); toast(`「${s['店名']}」を${rk === '-' ? '行かない店' : rk}にしました`);
+        };
+      });
+    };
+  });
+}
+
+const SORTS = {
+  score: ['ランク→時給', (a, b) => score(b) - score(a)],
+  pref: ['県ごと', (a, b) => prefOrder(a) - prefOrder(b) || score(b) - score(a)],
+  hourly: ['時給が高い順', (a, b) => (Number(b['時給換算']) || -1) - (Number(a['時給換算']) || -1)],
+  profit: ['平均利益が高い順', (a, b) => (Number(b['平均見込み利益']) || -1) - (Number(a['平均見込み利益']) || -1)],
+  recent: ['最近行った順', (a, b) => String(b['最終訪問日'] || '').localeCompare(String(a['最終訪問日'] || ''))],
+  stale: ['しばらく行ってない順', (a, b) => (Number(b['経過日数']) || 0) - (Number(a['経過日数']) || 0)],
+  near: ['近い順', (a, b) => km(S.origin, pos(a)) - km(S.origin, pos(b))],
+  name: ['名前順', (a, b) => String(a['店名']).localeCompare(String(b['店名']), 'ja')],
+};
+const PREF_ORDER = ['埼玉県', '茨城県', '群馬県', '栃木県', '千葉県', '東京都', '神奈川県', '福島県', '宮城県', '山形県', '岩手県', '秋田県', '青森県'];
+const prefOrder = (s) => { const i = PREF_ORDER.indexOf(s['県']); return i < 0 ? 99 : i; };
+
+function tabList(el) {
+  const sort = SORTS[S.listSort] && (S.listSort !== 'near' || S.origin) ? S.listSort : 'score';
+  const shown = S.data.stores.filter(visible).sort(SORTS[sort][1]);
+  let html = '';
+  if (sort === 'pref') {
+    const prefs = [...new Set(shown.map((s) => s['県']))];
+    if (!S.prefOpen) S.prefOpen = new Set(prefs.slice(0, 1));
+    prefs.forEach((pf) => {
+      const list = shown.filter((s) => s['県'] === pf);
+      const open = S.prefOpen.has(pf);
+      html += `<button class="group" data-pref="${esc(pf)}" aria-expanded="${open}"><span>${open ? '▾' : '▸'} ${esc(pf || '県不明')}</span><span class="faint">${list.length}件</span></button>`;
+      if (open) html += list.map((s) => storeItem(s, null, true)).join('');
+    });
+  } else {
+    shown.slice(0, S.listLimit).forEach((s) => {
+      html += storeItem(s, sort === 'near' ? Math.round(km(S.origin, pos(s)) * 10) / 10 + 'km' : null, true);
+    });
+  }
+  el.innerHTML = `<div class="list-head">
+    <div class="chips scroll-x" id="lRegion">${S.data.regions.concat(['全国']).map((r) => `<button data-region="${esc(r)}" class="${r === S.region ? 'on' : ''}">${esc(r)}</button>`).join('')}</div>
+    <div class="row" style="margin-top:8px">
+      <select id="lSort">${Object.keys(SORTS).filter((k) => k !== 'near' || S.origin).map((k) => `<option value="${k}" ${k === sort ? 'selected' : ''}>${SORTS[k][0]}</option>`).join('')}</select>
+      <span class="muted small grow" style="text-align:right">${shown.length}件</span>
+    </div>
+    <div class="faint small" style="margin-top:4px">ランクのバッジをタップすると、ここで変えられる</div></div>
+    <div class="list">${html || '<div class="muted small">条件に合う店がありません(絞り込みを確認)</div>'}</div>
+    ${sort !== 'pref' && shown.length > S.listLimit ? '<button id="more" style="width:100%;margin-top:6px">さらに表示</button>' : ''}`;
+  bindItems(el);
+  el.querySelectorAll('[data-pref]').forEach((b) => {
+    b.onclick = () => { const pf = b.dataset.pref; S.prefOpen.has(pf) ? S.prefOpen.delete(pf) : S.prefOpen.add(pf); tabList(el); };
+  });
+  el.querySelectorAll('[data-region]').forEach((b) => {
+    b.onclick = () => { S.region = b.dataset.region; $('#region').value = S.region; store('region', S.region); S.listLimit = 50; render(true); };
+  });
+  $('#lSort').onchange = (e) => { S.listSort = e.target.value; store('listSort', S.listSort); S.listLimit = 50; tabList(el); };
+  const more = el.querySelector('#more');
+  if (more) more.onclick = () => { S.listLimit += 50; tabList(el); };
+  const on = el.querySelector('#lRegion .on');
+  if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+}
+function openCard(id) {
+  const prev = S.open;
+  if (!S.byId[id]) return;
+  S.open = id; S.form = false;
+  closeTab(); $('#filters').classList.add('hidden');
+  $('#cName').textContent = S.byId[id]['店名'];
+  const card = $('#card');
+  const wasClosed = card.classList.contains('hidden') || card._closing;
+  card.classList.remove('hidden');
+  renderCard();
+  $('#cBody').scrollTop = 0;
+  if (wasClosed) sheetIn(card, card.offsetHeight);
+  refreshPins([prev, id]);
+}
+function closeCard(from) {
+  const prev = S.open; S.open = null;
+  const card = $('#card');
+  if (!card.classList.contains('hidden') && !card._closing) sheetOut(card, card.offsetHeight, from, () => { card.classList.add('hidden'); card.classList.remove('tall'); });
+  if (prev) refreshPins([prev]);
+}
+function refreshPins(ids) { ids.forEach((id) => { if (id && S.markers[id]) S.markers[id].setIcon(pinIcon(S.byId[id])); }); }
+function nearestParking(s) {
+  const lim = (Number(S.data.settings['駐車場を探す範囲(m)']) || 1500) / 1000;
+  let best = null;
+  S.data.parking.filter((p) => p['種類'] !== '給油所').forEach((p) => { const d = km(pos(s), pos(p)); if (d <= lim && (!best || d < best.d)) best = { p, d }; });
+  return best;
+}
+function weekdayStats(list) {
+  const rows = WD.map(() => ({ n: 0, sum: 0, cnt: 0 }));
+  list.forEach((v) => {
+    if (!v['日付']) return;
+    if (!validDay(v['日付'])) return;
+    const w = parseDay(v['日付']).getDay();
+    rows[w].n++;
+    if (v['見込み利益'] !== '' && v['見込み利益'] != null) { rows[w].sum += Number(v['見込み利益']); rows[w].cnt++; }
+  });
+  return rows;
+}
+function bestWd(wd) {
+  let best = -1, val = -1;
+  wd.forEach((x, i) => { if (x.cnt >= 2 && x.sum / x.cnt > val) { val = x.sum / x.cnt; best = i; } });
+  return best < 0 ? '—' : WD[best];
+}
+function renderCard() {
+  try { drawCard(); } catch (e) {
+    $('#cBody').innerHTML = `<div class="memo">この店の表示でエラーが出ました。バディに画面を見せてください。<br><span class="faint small">${esc(e.message)}</span></div>`;
+    console.error(e);
+  }
+}
+function drawCard() {
+  const s = S.byId[S.open];
+  const r = rankOf(s);
+  const visits = S.visitsBy[s['店舗ID']] || [];
+  const park = s['駐車場'] === 'なし' ? nearestParking(s) : null;
+  const inRoute = S.route.ids.indexOf(s['店舗ID']) >= 0;
+  const wd = weekdayStats(visits);
+  const badges = [
+    `<span class="b ${RANK_CLASS[r]}">${r === 'S' ? '★S' : r === '-' ? '☠ 行かない' : esc(r)}</span>`,
+    s['状態'] === '閉店疑い' || s['状態'] === '閉店' ? `<span class="b bad">${esc(s['状態'])}</span>` : '',
+    `<span class="b">${esc(s['ジャンル'])}</span>`,
+    s['駐車場'] ? `<span class="b">駐車場${esc(s['駐車場'])}</span>` : '',
+    s['鮮度'] ? `<span class="b warn">しばらく行ってない</span>` : '',
+    `<span class="b">${esc([s['市区町村'] || s['県'], s['エリア']].filter(Boolean).join(' / '))}</span>`,
+  ].join(' ');
+  $('#cBody').innerHTML = `
+    <div class="row">${badges}</div>
+    <div class="actions">
+      <a class="go" href="${navUrl(park ? pos(park.p) : pos(s))}" target="_blank" rel="noopener">${ICON.nav}${park ? '駐車場へ' : 'ナビ'}</a>
+      <button id="aWrite">${ICON.pen}所感を書く</button>
+      <button id="aRoute" class="${inRoute ? 'on' : ''}">${ICON.route}${inRoute ? 'ルートから外す' : 'ルートに追加'}</button>
+      <a href="${searchUrl(s['店名'])}" target="_blank" rel="noopener">${ICON.map}Googleマップ</a>
+    </div>
+    ${park ? `<div class="muted small">駐車場なしの店。近くの「${esc(park.p['名前'])}」(約${Math.round(park.d * 1000)}m)を使う。${esc(park.p['メモ'] || '')}</div>` : ''}
+    <div id="formBox"></div>
+    <div class="stats" style="margin-top:8px">
+      <div class="stat"><div class="k">訪問</div><div class="v">${s['訪問回数'] || 0}回</div></div>
+      <div class="stat"><div class="k">平均見込み利益</div><div class="v">${yen(s['平均見込み利益'])}</div></div>
+      <div class="stat"><div class="k">時給換算</div><div class="v">${yen(s['時給換算'])}</div></div>
+      <div class="stat"><div class="k">最終訪問</div><div class="v" style="font-size:13px">${s['最終訪問日'] ? md(s['最終訪問日']) + '<br><span class="faint small">' + String(s['最終訪問日']).slice(0, 4) + '年</span>' : '—'}</div></div>
+      <div class="stat"><div class="k">経過</div><div class="v">${s['経過日数'] !== '' && s['経過日数'] != null ? s['経過日数'] + '日' : '—'}</div></div>
+      <div class="stat"><div class="k">強い曜日</div><div class="v">${bestWd(wd)}</div></div>
+    </div>
+
+    <h3>ランク(タップで変更)</h3>
+    <div class="seg" id="rankSeg">${RANKS5.map((x) => `<button data-rank="${x}" class="${(s['ランク'] || '未評価') === x && s['状態'] !== '除外' ? 'on' : ''}">${x === 'S' ? '★S' : x}</button>`).join('')}</div>
+    <div class="row" style="margin-top:6px"><button id="skull" class="${s['状態'] === '除外' ? 'on' : ''}">☠ ${s['状態'] === '除外' ? '行かない店をやめる' : '行かない店にする'}</button></div>
+
+    ${s['基本メモ'] ? `<h3>基本メモ</h3><div class="memo">${esc(s['基本メモ'])}</div>` : ''}
+
+    <h3>訪問履歴(${visits.length}回)</h3>
+    <div class="vbox">${visits.map((v) => `<div class="visit"><div class="vh"><span>${validDay(v['日付']) ? esc(String(v['日付']).slice(0, 10).replace(/-/g, '/')) + '(' + WD[parseDay(v['日付']).getDay()] + ')' : '日付不明'}</span>
+      <span>${v['開始'] ? esc(v['開始']) + '〜' + esc(v['終了']) : ''}</span><span class="grow"></span><b style="color:var(--text)">${yen(v['見込み利益'])}</b>
+      ${v['送信待ち'] ? '<span class="b warn">送信待ち</span>' : `<button class="vedit" data-v="${esc(v['訪問ID'])}" title="この記録を直す">直す</button>`}</div>${esc(v['メモ'])}</div>`).join('') || '<div class="muted" style="padding:6px">まだありません</div>'}</div>
+
+    <h3>曜日別</h3>
+    <table class="t"><tr><th>曜日</th>${WD.map((w) => `<th>${w}</th>`).join('')}</tr>
+      <tr><td>回数</td>${wd.map((x) => `<td>${x.n || ''}</td>`).join('')}</tr>
+      <tr><td>平均</td>${wd.map((x) => `<td>${x.cnt ? (Math.round(x.sum / x.cnt / 100) / 10) + '千' : ''}</td>`).join('')}</tr></table>
+
+    <details id="editBox"><summary>店の情報を直す(店名・ジャンル・状態・駐車場・メモ)</summary>
+      <div class="row"><label class="muted small" style="width:64px">店名</label><input id="cNameIn" class="grow" value="${esc(s['店名'])}"></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:64px">ジャンル</label><select id="cGenre" class="grow">${genreList().map((g) => `<option ${g === s['ジャンル'] ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:64px">状態</label><select id="cStatus" class="grow">${S.data.statuses.filter((x) => x !== '除外').map((x) => `<option ${x === s['状態'] ? 'selected' : ''}>${x}</option>`).join('')}${s['状態'] === '除外' ? '<option selected>除外</option>' : ''}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:64px">駐車場</label><select id="cPark" class="grow"><option value="">不明</option>${['あり', 'なし'].map((x) => `<option ${x === s['駐車場'] ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div style="margin-top:6px"><textarea id="cMemo" placeholder="基本メモ(駐車場・売り場の特徴など)">${esc(s['基本メモ'] || '')}</textarea></div>
+      <div class="row" style="margin-top:6px"><span class="grow faint small">状態・駐車場は選ぶとすぐ変わる</span><button id="cMemoSave" class="primary">店名・ジャンル・メモを保存</button></div>
+    </details>`;
+
+  document.querySelectorAll('#rankSeg button').forEach((b) => {
+    b.onclick = () => change(s['状態'] === '除外' ? { 'ランク': b.dataset.rank, '状態': '営業中' } : { 'ランク': b.dataset.rank });
+  });
+  $('#skull').onclick = () => change(s['状態'] === '除外' ? { '状態': '営業中', 'ランク': s['ランク'] === '-' ? '未評価' : s['ランク'] } : { '状態': '除外' });
+  $('#cStatus').onchange = (e) => change({ '状態': e.target.value });
+  $('#cPark').onchange = (e) => change({ '駐車場': e.target.value });
+  $('#cMemoSave').onclick = () => {
+    const name = $('#cNameIn').value.trim();
+    if (!name) return toast('店名を入れてください', true);
+    change({ '店名': name, 'ジャンル': $('#cGenre').value, '基本メモ': $('#cMemo').value });
+  };
+  $('#aRoute').onclick = () => { toggleRoute(s['店舗ID']); renderCard(); toast(inRoute ? 'ルートから外しました' : 'ルートに追加しました(ルートのタブで計算)'); };
+  $('#aWrite').onclick = () => { S.form = S.form === 'new' ? false : 'new'; renderForm(); };
+  document.querySelectorAll('#cBody .vedit').forEach((b) => { b.onclick = () => { S.form = b.dataset.v; renderForm(); }; });
+  if (S.form) renderForm();
+}
+function renderForm() {
+  const box = $('#formBox');
+  const ed = S.form && S.form !== 'new' ? (S.visitsBy[S.open] || []).find((v) => v['訪問ID'] === S.form) : null;
+  if (S.form && S.form !== 'new' && !ed) S.form = false;
+  $('#aWrite').classList.toggle('on', S.form === 'new');
+  if (!S.form) { box.innerHTML = ''; return; }
+  const s = S.byId[S.open];
+  const pv = ed && ed['見込み利益'] !== '' && ed['見込み利益'] != null ? String(ed['見込み利益']) : '';
+  const dateField = ed
+    ? `<input id="vDate" type="date" class="grow" value="${validDay(ed['日付']) ? String(ed['日付']).slice(0, 10) : ''}" max="${S.data.today}">`
+    : `<select id="vDate" class="grow">${pastDayOptions(S.data.today)}</select>`;
+  box.innerHTML = `<div class="form">
+    ${ed ? `<div class="small muted" style="margin-bottom:6px">この記録を直す(直す前の内容は「変更履歴」に残る)</div>` : ''}
+    <div class="row"><label style="width:40px">日付</label>${dateField}</div>
+    <div class="row" style="margin-top:6px"><label style="width:40px">時間</label>
+      <select id="vStart">${timeOptions(ed ? ed['開始'] : '', '開始')}</select><button id="vStartNow">今</button>
+      <span class="muted">〜</span>
+      <select id="vEnd">${timeOptions(ed ? ed['終了'] : '', '終了')}</select><button id="vEndNow">今</button></div>
+    <div class="row" style="margin-top:8px"><label style="width:40px">利益</label><input id="vProfit" type="number" inputmode="numeric" placeholder="見込み利益(円)" class="grow" value="${esc(pv)}"></div>
+    <div class="chips" style="margin:6px 0 0 46px">${[[0, 'ボウズ'], [3000, '3千'], [5000, '5千'], [10000, '1万'], [20000, '2万'], [30000, '3万'], [50000, '5万']].map(([v, t]) => `<button data-p="${v}" class="${pv === String(v) ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <textarea id="vMemo" placeholder="所感(何が取れた・次に見る所など)" style="margin-top:8px">${ed ? esc(ed['メモ']) : ''}</textarea>
+    <div class="row" style="margin-top:6px"><button id="vCancel">やめる</button>${ed ? '<button id="vDel" class="danger">消す</button>' : ''}<span class="grow"></span><button id="vSave" class="primary">${ed ? '直す' : '追加する'}</button></div>
+  </div>`;
+  if (ed) {
+    $('#vDel').onclick = async () => {
+      const b = $('#vDel');
+      if (!b.classList.contains('armed')) {
+        b.classList.add('armed'); b.textContent = 'もう一度押すと消す';
+        setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = '消す'; } }, 4000);
+        return;
+      }
+      enqueue('deleteVisit', [ed['訪問ID']]);
+      S.form = false;
+      redraw();
+      toast('記録を消しました(「チェック」から戻せる)');
+    };
+  }
+  const nowOpt = () => { const d = new Date(); const m = d.getHours() * 60 + d.getMinutes(); return hm(Math.max(T_FROM, Math.min(T_TO, m - (m % 15)))); };
+  $('#vStartNow').onclick = () => { $('#vStart').value = nowOpt(); };
+  $('#vEndNow').onclick = () => { $('#vEnd').value = nowOpt(); };
+  box.querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => { $('#vProfit').value = b.dataset.p; box.querySelectorAll('[data-p]').forEach((x) => x.classList.toggle('on', x === b)); }; });
+  $('#vCancel').onclick = () => { S.form = false; renderForm(); };
+  $('#vSave').onclick = async () => {
+    const v = { storeId: s['店舗ID'], date: $('#vDate').value, start: $('#vStart').value, end: $('#vEnd').value, profit: $('#vProfit').value, memo: $('#vMemo').value.trim() };
+    if (!v.memo && v.profit === '') return toast('見込み利益か所感を入れてください', true);
+    enqueue(ed ? 'updateVisit' : 'addVisit', ed ? [ed['訪問ID'], v] : [v]);
+    S.form = false;
+    redraw();
+    toast(ed ? '記録を直しました' : '所感を追加しました');
+  };
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function change(changes) {
+  enqueue('updateStore', [S.open, changes, '']);
+  redraw();
+  toast('更新しました');
+}
+const roundHalfUp = (x) => Math.sign(x) * Math.round(Math.abs(x));
+const isNum = (x) => x !== '' && x != null && isFinite(Number(x));
+function withVisitFields(v) {
+  const day = parseDay(v['日付']);
+  const min = (x) => { const m = String(x || '').match(/^(\d{1,2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const a = min(v['開始']), b = min(v['終了']);
+  return Object.assign({}, v, {
+    '曜日': isNaN(day.getTime()) ? '' : WD[day.getDay()],
+    '滞在分': a === null || b === null ? '' : (((b - a) % 1440) + 1440) % 1440,
+    '店名': (S.byId[v['店舗ID']] || {})['店名'] || '',
+  });
+}
+function withStats(s) {
+  const vs = S.visitsBy[s['店舗ID']] || [];
+  const last = vs.filter((v) => validDay(v['日付'])).map((v) => ymd(parseDay(v['日付']))).sort().pop() || '';
+  const days = last ? Math.round((Date.parse(S.data.today) - Date.parse(last)) / 864e5) : '';
+  const priced = vs.filter((v) => isNum(v['見込み利益']));
+  const timed = vs.filter((v) => Number(v['滞在分']) > 0);
+  const profit = timed.filter((v) => isNum(v['見込み利益'])).reduce((n, v) => n + Number(v['見込み利益']), 0);
+  const mins = timed.filter((v) => isNum(v['見込み利益'])).reduce((n, v) => n + Number(v['滞在分']), 0);
+  const limit = Number(S.data.settings['鮮度の基準(日)']) || 365;
+  return Object.assign({}, s, {
+    '訪問回数': vs.length,
+    '最終訪問日': last,
+    '経過日数': days,
+    '平均見込み利益': priced.length ? roundHalfUp(priced.reduce((n, v) => n + Number(v['見込み利益']), 0) / priced.length) : '',
+    '計測した利益': profit,
+    '計測した分': mins,
+    '時給換算': mins ? roundHalfUp(profit / mins * 60) : '',
+    '鮮度': days !== '' && days > limit ? '要再訪確認' : '',
+  });
+}
+function refreshStats(id) { if (S.byId[id]) replaceStore(withStats(S.byId[id])); }
+function restat(id) {
+  const s = S.byId[id];
+  if (!s) return;
+  const n = withStats(s);
+  S.byId[id] = n;
+  const i = S.data.stores.indexOf(s);
+  if (i >= 0) S.data.stores[i] = n;
+}
+let outbox = store('outbox') || [];
+let sending = false, retryTimer = null;
+const saveOutbox = () => store('outbox', outbox);
+const stampNow = () => { const d = new Date(); return ymd(d) + ' ' + hm(d.getHours() * 60 + d.getMinutes()); };
+function enqueue(fn, args) {
+  const op = { key: 'q' + Date.now() + Math.random().toString(36).slice(2, 6), fn, args };
+  if (fn === 'addVisit') op.tmp = 'tmp-' + op.key;
+  outbox.push(op);
+  saveOutbox();
+  applyLocal(op);
+  saveCache();
+  sendOutbox();
+  return op;
+}
+function applyLocal(op) {
+  const a = op.args;
+  if (op.fn === 'addVisit') {
+    if (S.data.visits.some((x) => x['訪問ID'] === op.tmp)) return;
+    const v = a[0];
+    const nv = withVisitFields({ '訪問ID': op.tmp, '店舗ID': v.storeId, '日付': v.date, '開始': v.start || '', '終了': v.end || '',
+      '見込み利益': v.profit === '' || v.profit == null ? '' : Number(v.profit), 'メモ': v.memo || '', '入力元': 'アプリ', '登録日時': stampNow(), '送信待ち': true });
+    S.data.visits.push(nv);
+    S.visitsBy[v.storeId] = sortVisits((S.visitsBy[v.storeId] || []).concat([nv]));
+    restat(v.storeId);
+  } else if (op.fn === 'updateVisit') {
+    const v = a[1];
+    const old = S.data.visits.find((x) => x['訪問ID'] === a[0]);
+    if (!old) return;
+    const nv = withVisitFields(Object.assign({}, old, { '日付': v.date, '開始': v.start || '', '終了': v.end || '',
+      '見込み利益': v.profit === '' || v.profit == null ? '' : Number(v.profit), 'メモ': v.memo || '' }));
+    const swap = (l) => l.map((x) => (x['訪問ID'] === a[0] ? nv : x));
+    S.data.visits = swap(S.data.visits);
+    S.visitsBy[nv['店舗ID']] = sortVisits(swap(S.visitsBy[nv['店舗ID']] || []));
+    restat(nv['店舗ID']);
+  } else if (op.fn === 'deleteVisit') {
+    const old = S.data.visits.find((x) => x['訪問ID'] === a[0]);
+    if (!old) return;
+    const drop = (l) => l.filter((x) => x['訪問ID'] !== a[0]);
+    S.data.visits = drop(S.data.visits);
+    S.visitsBy[old['店舗ID']] = drop(S.visitsBy[old['店舗ID']] || []);
+    if (!S.data.deleted.some((x) => x['訪問ID'] === a[0])) S.data.deleted.push(Object.assign({}, old, { '削除日時': stampNow(), '送信待ち': true }));
+    restat(old['店舗ID']);
+  } else if (op.fn === 'updateStore') {
+    const s = S.byId[a[0]];
+    if (!s) return;
+    const n = Object.assign({}, s, a[1]);
+    S.byId[a[0]] = n;
+    S.data.stores[S.data.stores.indexOf(s)] = n;
+  }
+}
+function ack(op, res) {
+  if (op.fn === 'addVisit' && res && res.visit) {
+    const nv = withVisitFields(res.visit);
+    const id = nv['店舗ID'];
+    const keep = (l) => l.filter((x) => x['訪問ID'] !== op.tmp && x['訪問ID'] !== nv['訪問ID']).concat([nv]);
+    S.data.visits = keep(S.data.visits);
+    S.visitsBy[id] = sortVisits(keep(S.visitsBy[id] || []));
+    restat(id);
+  } else if (op.fn === 'deleteVisit' && res && res.removed) {
+    S.data.deleted = S.data.deleted.filter((x) => x['訪問ID'] !== res.removed['訪問ID']).concat([res.removed]);
+  }
+}
+async function sendOutbox() {
+  if (sending || !S.data) return;
+  sending = true;
+  let changed = false;
+  try {
+    for (;;) {
+      const op = outbox.find((o) => !o.failed);
+      if (!op) break;
+      let res;
+      try {
+        res = await call(op.fn, op.args, true);
+      } catch (e) {
+        op.tries = (op.tries || 0) + 1;
+        if (e && e.net || op.tries < 3) { saveOutbox(); scheduleRetry(); break; }
+        op.failed = (e && e.message) || String(e);
+        saveOutbox();
+        toast('送れなかった記録があります(「チェック」で確認できます)', true);
+        S.stale = true;
+        continue;
+      }
+      ack(op, res);
+      outbox = outbox.filter((o) => o !== op);
+      saveOutbox();
+      changed = true;
+    }
+  } finally {
+    sending = false;
+    updatePending();
+    if (changed) { saveCache(); redraw(); }
+    if (S.stale && !outbox.some((o) => !o.failed)) refreshData();
+  }
+}
+function scheduleRetry() {
+  if (retryTimer) return;
+  retryTimer = setTimeout(() => { retryTimer = null; sendOutbox(); }, 20000);
+}
+function updatePending() {
+  const n = outbox.filter((o) => !o.failed).length;
+  const el = $('#pending');
+  el.textContent = `未送信 ${n}件(タップで送る)`;
+  el.classList.toggle('hidden', n === 0 || waiting > 0);
+}
+let cacheTimer = null;
+function saveCache() {
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(() => {
+    if (!S.data) return;
+    store('cache', Object.assign({}, S.data, { visits: S.data.visits.filter((v) => !v['送信待ち']), deleted: S.data.deleted.filter((v) => !v['送信待ち']) }));
+  }, 500);
+}
+function redraw() {
+  if (!S.data) return;
+  render(false);
+  if (S.open && S.byId[S.open] && !S.form) { $('#cName').textContent = S.byId[S.open]['店名']; const top = $('#cBody').scrollTop; renderCard(); $('#cBody').scrollTop = top; }
+}
+function replaceStore(s) {
+  const i = S.data.stores.findIndex((x) => x['店舗ID'] === s['店舗ID']);
+  if (i >= 0) S.data.stores[i] = s; else S.data.stores.push(s);
+  S.byId[s['店舗ID']] = s;
+  fillRegions();
+  render(false);
+  if (S.open === s['店舗ID']) { $('#cName').textContent = s['店名']; const top = $('#cBody').scrollTop; renderCard(); $('#cBody').scrollTop = top; }
+}
+function toggleRoute(id) {
+  const i = S.route.ids.indexOf(id);
+  if (i >= 0) S.route.ids.splice(i, 1); else S.route.ids.push(id);
+  S.route.result = null; routeLayer.clearLayers(); render(false);
+}
+function saveRouteState() {
+  const R = S.route;
+  store('route', { hours: R.hours, stay: R.stay, back: R.back, limit: R.limit, minRank: R.minRank, skipDays: R.skipDays });
+}
+function routeTimes() {
+  const R = S.route;
+  let start = R.start === 'now' ? (R.fixedStart != null ? R.fixedStart : R.date === S.data.today ? nowRounded() : 10 * 60) : toMin(R.start);
+  return { start, end: start + R.hours * 60 };
+}
+function routeDayOptions() {
+  let h = '';
+  for (let i = 0; i <= 30; i++) {
+    const v = addDays(S.data.today, i);
+    h += `<option value="${v}" ${v === S.route.date ? 'selected' : ''}>${md(v)}${i === 0 ? ' 今日' : i === 1 ? ' 明日' : i === 2 ? ' 明後日' : ''}</option>`;
+  }
+  return h;
+}
+
+function tabRoute(el) {
+  const R = S.route;
+  const saved = store('origins') || [];
+  const t = routeTimes();
+  const opt = (list, cur) => list.map(([v, l]) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${l}</option>`).join('');
+  el.innerHTML = `
+    <h3 style="margin-top:6px">1. どこから</h3>
+    <div class="chips">
+      <button id="oHere" class="${S.origin && S.origin.label === '現在地' ? 'on' : ''}">現在地</button>
+      ${saved.map((o, i) => `<button data-o="${i}" class="${S.origin && S.origin.label === o.label ? 'on' : ''}">${esc(o.label)}</button>`).join('')}
+      <button id="oMap">地図で選ぶ</button>
+    </div>
+    <div class="row" style="margin-top:6px"><input id="oText" class="grow" placeholder="住所・駅名で探す"><button id="oFind">探す</button></div>
+    ${S.origin && S.origin.label !== '現在地' && !saved.some((o) => o.label === S.origin.label) ? `<div class="row small" style="margin-top:4px"><span class="grow muted">出発地: ${esc(S.origin.label)}</span><button id="oSave">よく使う地点に保存</button></div>` : ''}
+
+    <h3>2. いつ・何時間</h3>
+    <div class="chips">${[0, 1, 2].map((i) => { const v = addDays(S.data.today, i); return `<button data-d="${v}" class="${R.date === v ? 'on' : ''}">${['今日', '明日', '明後日'][i]}</button>`; }).join('')}
+      <select id="rDate">${routeDayOptions()}</select></div>
+    <div class="row" style="margin-top:6px">
+      <select id="rStart"><option value="now" ${R.start === 'now' ? 'selected' : ''}>${R.date === S.data.today ? '今すぐ' : '10:00'}から</option>${timeOptions(R.start === 'now' ? '' : R.start)}</select>
+      <select id="rHours">${opt([2, 3, 4, 5, 6, 7, 8, 9, 10, 12].map((h) => [h, h + '時間']), R.hours)}</select>
+      <span class="muted small">${hm(t.start)}〜${hm(t.end)}</span>
+    </div>
+
+    <div style="margin-top:12px"><button id="rMake" class="primary big" ${R.making ? 'disabled' : ''}>${R.making ? 'ルートを作っています…' : 'おすすめルートを作る'}</button></div>
+
+    <details ${R.showOpt ? 'open' : ''} id="rOpt"><summary>条件を変える(範囲・ランク・滞在など)</summary>
+      <div class="row"><label class="muted small" style="width:76px">範囲</label><select id="rLimit" class="grow">${opt([[15, '車で15分以内'], [30, '車で30分以内'], [45, '車で45分以内'], [60, '車で1時間以内'], [90, '車で1時間半以内'], [0, '地域全体(先の予定向け)']], R.limit)}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:76px">ランク</label><select id="rMin" class="grow">${opt([['S', '★Sだけ'], ['A', 'A以上'], ['B', 'B以上'], ['C', 'C以上'], ['未評価', '全部']], R.minRank)}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:76px">1店の滞在</label><select id="rStay" class="grow">${opt([15, 20, 30, 45, 60, 90].map((m) => [m, m + '分']), R.stay)}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:76px">最近の店</label><select id="rSkip" class="grow">${opt([[0, '外さない'], [7, '1週間以内に行った店は外す'], [14, '2週間以内は外す'], [30, '1か月以内は外す'], [60, '2か月以内は外す']], R.skipDays)}</select></div>
+      <div class="row" style="margin-top:6px"><label class="muted small" style="width:76px">帰り</label><select id="rBack" class="grow">${opt([[1, '出発地に戻る'], [0, '最後の店で終わり']], R.back ? 1 : 0)}</select></div>
+      <div class="faint small" style="margin-top:6px">地図の絞り込み(ジャンルなど)も効く。時間に収まらないときは、点数の低い店から自動で外す。</div>
+    </details>
+
+    <div id="rResult"></div>
+
+    <h3>保存したルート</h3>
+    <div class="list" id="rSaved"></div>`;
+
+  const sync = () => {
+    R.date = $('#rDate').value; R.start = $('#rStart').value; R.hours = Number($('#rHours').value);
+    R.limit = Number($('#rLimit').value); R.minRank = $('#rMin').value; R.stay = Number($('#rStay').value);
+    R.skipDays = Number($('#rSkip').value); R.back = $('#rBack').value === '1'; R.showOpt = $('#rOpt').open;
+    R.fixedStart = null;
+    saveRouteState();
+  };
+  el.querySelectorAll('select').forEach((i) => { i.onchange = () => { sync(); tabRoute(el); }; });
+  $('#rOpt').ontoggle = () => { R.showOpt = $('#rOpt').open; };
+  el.querySelectorAll('[data-d]').forEach((b) => { b.onclick = () => { R.date = b.dataset.d; R.fixedStart = null; tabRoute(el); }; });
+  $('#oHere').onclick = async () => { if (await locate(false)) tabRoute(el); };
+  $('#oMap').onclick = () => setMode('origin', '地図をタップして出発地を選ぶ');
+  if ($('#oSave')) $('#oSave').onclick = () => {
+    const label = prompt('地点の名前(例:自宅、山形のホテル)', S.origin.label === '地図で選んだ地点' ? '' : S.origin.label);
+    if (!label) return;
+    const list = (store('origins') || []).filter((o) => o.label !== label);
+    list.push(Object.assign({}, S.origin, { label })); store('origins', list); setOrigin(Object.assign({}, S.origin, { label })); tabRoute(el);
+  };
+  $('#oFind').onclick = async () => {
+    const q = $('#oText').value.trim(); if (!q) return;
+    const o = await api('geocode', q); setOrigin(o); focusOn(o, 12); tabRoute(el);
+  };
+  el.querySelectorAll('[data-o]').forEach((b) => { b.onclick = () => { setOrigin(saved[b.dataset.o]); focusOn(S.origin, 11); tabRoute(el); }; });
+  $('#rMake').onclick = async () => { sync(); R.making = true; tabRoute(el); try { await makeRoute(); } finally { R.making = false; tabRoute(el); } };
+
+  renderResult();
+  $('#rSaved').innerHTML = (S.data.routes || []).slice().reverse().map((x) => `<div class="item" data-rid="${esc(x['ルートID'])}"><span class="name">${esc(x['名前'])}<br><span class="faint small">${esc(x['日付'])} ${esc(x['開始'])}〜${esc(x['終了'])}・${String(x['店舗ID']).split(',').filter(Boolean).length}店</span></span></div>`).join('') || '<div class="muted small">まだありません</div>';
+  $('#rSaved').querySelectorAll('[data-rid]').forEach((d) => {
+    d.onclick = async () => {
+      const x = S.data.routes.find((y) => y['ルートID'] === d.dataset.rid);
+      R.ids = String(x['店舗ID']).split(',').map((v) => v.trim()).filter((v) => S.byId[v]);
+      R.date = x['日付'] || R.date; R.start = x['開始'] || R.start;
+      R.hours = x['開始'] && x['終了'] ? Math.max(1, Math.round((toMin(x['終了']) - toMin(x['開始'])) / 60)) : R.hours;
+      R.stay = Number(x['滞在分']) || R.stay; R.back = x['戻る'] !== 'いいえ'; R.fixedStart = null;
+      try { const o = JSON.parse(x['出発地']); if (o) setOrigin(o); } catch (e) { /* 出発地なし */ }
+      R.result = null; routeLayer.clearLayers();
+      if (S.origin && R.ids.length) await calcRoute();
+      render(false); tabRoute(el);
+    };
+  });
+}
+async function makeRoute() {
+  const R = S.route;
+  if (!S.origin) { const o = await locate(false); if (!o) return; }
+  R.fixedStart = null;
+  const t = routeTimes();
+  if (R.start === 'now') R.fixedStart = t.start;
+  const move = Number(S.data.settings['移動の目安(分)']) || 15;
+  const cap = Math.max(1, Math.min(23, Math.floor((t.end - t.start) / (R.stay + move))));
+  const cutoff = R.skipDays > 0 ? addDays(S.data.today, -R.skipDays) : null;
+  let cand = S.data.stores.filter((s) => visible(s) && s['状態'] === '営業中' && RANK_POINT[rankOf(s)] >= RANK_POINT[R.minRank]
+    && !(cutoff && s['最終訪問日'] && s['最終訪問日'] >= cutoff));
+  if (R.limit > 0) {
+    cand = cand.filter((s) => km(S.origin, pos(s)) <= R.limit * 0.9).sort((a, b) => score(b) - score(a)).slice(0, 40);
+    if (!cand.length) return toast('条件に合う店が近くにありません。範囲かランクを広げてください', true);
+    const mins = await api('driveMinutes', S.origin, cand.map((s) => ({ id: s['店舗ID'], lat: pos(s).lat, lng: pos(s).lng })));
+    cand = cand.filter((s) => mins[s['店舗ID']] != null && mins[s['店舗ID']] <= R.limit);
+  } else {
+    cand = cand.sort((a, b) => km(S.origin, pos(a)) - km(S.origin, pos(b))).slice(0, cap * 3);
+  }
+  if (!cand.length) return toast('条件に合う店がありません。範囲かランクを広げてください', true);
+  cand.sort((a, b) => score(b) - score(a));
+  R.ids = cand.slice(0, cap).map((s) => s['店舗ID']);
+  await calcRoute();
+  let trimmed = 0;
+  while (R.result && finishTime() > t.end && R.ids.length > 1 && trimmed < 4) {
+    const worst = R.ids.slice().sort((a, b) => score(S.byId[a]) - score(S.byId[b]))[0];
+    R.ids = R.ids.filter((id) => id !== worst);
+    trimmed++;
+    await calcRoute();
+  }
+  toast(`${R.ids.length}店のルートを作りました${trimmed ? '(時間に合わせて' + trimmed + '店外しました)' : ''}`);
+  render(false);
+  if (R.result) fitTo([S.origin].concat(R.ids.map((id) => pos(S.byId[id]))));
+}
+
+function finishTime() {
+  const R = S.route, res = R.result;
+  let t = routeTimes().start;
+  res.order.forEach((id, i) => { t += res.legs[i].min + R.stay; });
+  if (R.back && res.legs[res.order.length]) t += res.legs[res.order.length].min;
+  return t;
+}
+
+async function calcRoute() {
+  const R = S.route;
+  if (!S.origin || !R.ids.length) { R.result = null; routeLayer.clearLayers(); return; }
+  const stops = R.ids.map((id) => ({ id, lat: pos(S.byId[id]).lat, lng: pos(S.byId[id]).lng }));
+  R.result = await api('planRoute', S.origin, stops, R.back);
+  routeLayer.clearLayers();
+  if (R.result.polyline) L.polyline(decodePolyline(R.result.polyline), { color: '#4285f4', weight: 5, opacity: .85 }).addTo(routeLayer);
+  render(false);
+}
+
+function renderResult() {
+  const R = S.route, res = R.result, box = $('#rResult');
+  if (!R.ids.length) { box.innerHTML = ''; return; }
+  if (!res) {
+    box.innerHTML = `<h3>選んだ店(${R.ids.length})</h3><div class="list">${R.ids.map((id) => storeItem(S.byId[id], `<button data-x="${id}">外す</button>`)).join('')}</div>
+      <div class="row" style="margin-top:8px"><button id="rClear">全部外す</button><span class="grow"></span><button id="rCalc" class="primary" ${S.origin ? '' : 'disabled'}>順番と時間を計算</button></div>
+      ${S.origin ? '' : '<div class="faint small">先に出発地を決めてください</div>'}`;
+  } else {
+    const t0 = routeTimes();
+    let t = t0.start, drive = 0, dist = 0;
+    const rows = res.order.map((id, i) => {
+      const leg = res.legs[i]; t += leg.min; drive += leg.min; dist += leg.km;
+      const arrive = t; t += R.stay;
+      const s = S.byId[id];
+      const park = s['駐車場'] === 'なし' ? nearestParking(s) : null;
+      return `<div class="item" data-id="${id}"><span class="b num">${i + 1}</span>
+        <span class="name">${esc(s['店名'])}<br><span class="small ${t > t0.end ? 'over' : 'faint'}">${hm(arrive)}着・車${leg.min}分${t > t0.end ? '・終了を過ぎる' : ''}${park ? '・駐車場は' + esc(park.p['名前']) : ''}</span></span>
+        <a class="navlink" href="${navUrl(park ? pos(park.p) : pos(s))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">ナビ</a>
+        <button data-x="${id}" title="このルートから外す" aria-label="外す">✕</button></div>`;
+    });
+    if (R.back && res.legs[res.order.length]) { const l = res.legs[res.order.length]; t += l.min; drive += l.min; dist += l.km; }
+    const pts = [S.origin].concat(res.order.map((id) => { const s = S.byId[id]; const p = s['駐車場'] === 'なし' ? nearestParking(s) : null; return p ? pos(p.p) : pos(s); }));
+    if (R.back) pts.push(S.origin);
+    const links = [];
+    for (let i = 0; i < pts.length - 1; i += 4) {
+      const seg = pts.slice(i, i + 5);
+      const w = seg.slice(1, -1).map((p) => p.lat + ',' + p.lng).join('|');
+      links.push(`<a class="navlink" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${seg[0].lat},${seg[0].lng}&destination=${seg[seg.length - 1].lat},${seg[seg.length - 1].lng}${w ? '&waypoints=' + encodeURIComponent(w) : ''}" target="_blank" rel="noopener">${links.length + 1}区間目をまとめてナビ${ICON.ext}</a>`);
+    }
+    box.innerHTML = `<h3>ルート(${res.order.length}店)</h3>
+      <div class="muted small" style="margin-bottom:6px">${hm(t0.start)}出発 → ${R.back ? '帰着' : '最後の店を出る'} ${hm(t)}・移動${drive}分・${Math.round(dist)}km${t > t0.end ? '<span class="over">(' + hm(t0.end) + 'を過ぎる。✕で店を外してください)</span>' : ''}</div>
+      <div class="list">${rows.join('')}</div>
+      <div class="row" style="margin-top:8px">${links.join('')}</div>
+      <div class="faint small" style="margin-top:2px">まとめてナビは4店ずつ。1店ずつなら各行の「ナビ」。</div>
+      <div class="row" style="margin-top:10px"><input id="rName" class="grow" placeholder="名前(空なら日付と地域)"><button id="rSave">保存</button><button id="rClear">消す</button></div>`;
+    const sv = $('#rSave');
+    sv.onclick = async () => {
+      const tt = routeTimes();
+      const routes = await api('saveRoute', { name: $('#rName').value.trim() || md(R.date) + ' ' + S.region, date: R.date, start: hm(tt.start), end: hm(tt.end), stay: R.stay, origin: S.origin, back: R.back, ids: R.ids });
+      S.data.routes = routes; toast('ルートを保存しました'); renderTab();
+    };
+  }
+  bindItems(box);
+  box.querySelectorAll('[data-x]').forEach((b) => {
+    b.onclick = async (e) => { e.stopPropagation(); const had = !!R.result; toggleRoute(b.dataset.x); if (had && R.ids.length) await calcRoute(); renderTab(); };
+  });
+  if ($('#rCalc')) $('#rCalc').onclick = async () => { await calcRoute(); renderTab(); };
+  $('#rClear').onclick = () => { R.ids = []; R.result = null; routeLayer.clearLayers(); render(false); };
+}
+
+function decodePolyline(str) {
+  let i = 0, lat = 0, lng = 0; const out = [];
+  while (i < str.length) {
+    for (const k of [0, 1]) {
+      let b, shift = 0, result = 0;
+      do { b = str.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      const d = (result & 1) ? ~(result >> 1) : (result >> 1);
+      if (k === 0) lat += d; else lng += d;
+    }
+    out.push([lat / 1e5, lng / 1e5]);
+  }
+  return out;
+}
+function tabStats(el) {
+  const ids = new Set(S.data.stores.filter(inRegion).map((s) => s['店舗ID']));
+  const vs = S.data.visits.filter((v) => ids.has(v['店舗ID']) && validDay(v['日付']));
+  const agg = (keyFn, n) => {
+    const rows = Array.from({ length: n }, () => ({ n: 0, cnt: 0, sum: 0, zero: 0, pmin: 0, mins: 0 }));
+    vs.forEach((v) => {
+      const r = rows[keyFn(v)]; r.n++;
+      const p = v['見込み利益'];
+      if (p !== '' && p != null) { r.cnt++; r.sum += Number(p); if (Number(p) === 0) r.zero++; if (Number(v['滞在分']) > 0) { r.pmin += Number(p); r.mins += Number(v['滞在分']); } }
+    });
+    return rows;
+  };
+  const wd = agg((v) => parseDay(v['日付']).getDay(), 7);
+  const mo = agg((v) => parseDay(v['日付']).getMonth(), 12);
+  const row = (label, r) => `<tr><td>${label}</td><td>${r.n || ''}</td><td>${r.cnt ? yen(Math.round(r.sum / r.cnt)) : ''}</td><td>${r.cnt ? Math.round(r.zero / r.cnt * 100) + '%' : ''}</td><td>${r.mins ? yen(Math.round(r.pmin / r.mins * 60)) : ''}</td></tr>`;
+  const head = '<tr><th></th><th>訪問</th><th>平均</th><th>ボウズ率</th><th>時給</th></tr>';
+  const pick = S.statWd != null ? S.statWd : parseDay(S.data.today).getDay();
+  const per = {};
+  vs.forEach((v) => {
+    if (parseDay(v['日付']).getDay() !== pick || v['見込み利益'] === '' || v['見込み利益'] == null) return;
+    const s = S.byId[v['店舗ID']];
+    if (!s || s['状態'] === '閉店' || s['状態'] === '除外') return;
+    const o = per[v['店舗ID']] = per[v['店舗ID']] || { n: 0, sum: 0 }; o.n++; o.sum += Number(v['見込み利益']);
+  });
+  const top = Object.keys(per).sort((a, b) => per[b].sum / per[b].n - per[a].sum / per[a].n).slice(0, 15);
+  const range = vs.map((v) => v['日付']).sort();
+  el.innerHTML = `<div class="muted small" style="margin:4px 0">${esc(S.region)}・訪問${vs.length}回${range.length ? '(' + range[0] + '〜' + range[range.length - 1] + ')' : ''}</div>
+    <h3>この曜日に強い店</h3>
+    <div class="seg" id="sWd">${WD.map((w, i) => `<button data-w="${i}" class="${i === pick ? 'on' : ''}">${w}</button>`).join('')}</div>
+    <div class="list" style="margin-top:6px">${top.map((id) => storeItem(S.byId[id], yen(Math.round(per[id].sum / per[id].n)) + '<br><span class="faint">' + per[id].n + '回</span>')).join('') || '<div class="muted small">この曜日の記録がありません</div>'}</div>
+    <h3>曜日別</h3><table class="t">${head}${wd.map((r, i) => row(WD[i], r)).join('')}</table>
+    <h3>月別(当たり時期)</h3><table class="t">${head}${mo.map((r, i) => row(i + 1 + '月', r)).join('')}</table>
+    <div class="faint small" style="margin-top:6px">平均・ボウズ率は金額が書いてある訪問だけで計算。時給は時間も書いてある訪問だけ。</div>`;
+  el.querySelectorAll('[data-w]').forEach((b) => { b.onclick = () => { S.statWd = Number(b.dataset.w); tabStats(el); }; });
+  bindItems(el);
+}
+function opLabel(o) {
+  const a = o.args;
+  if (o.fn === 'addVisit') return `所感の追加: ${(S.byId[a[0].storeId] || {})['店名'] || ''} ${a[0].date} ${a[0].memo || ''}`;
+  if (o.fn === 'updateVisit') return `所感の修正: ${a[1].date} ${a[1].memo || ''}`;
+  if (o.fn === 'deleteVisit') return '所感の削除';
+  if (o.fn === 'updateStore') return `店の変更: ${(S.byId[a[0]] || {})['店名'] || ''} ${Object.keys(a[1]).join('・')}`;
+  return o.fn;
+}
+function tabCheck(el) {
+  const inR = S.data.stores.filter(inRegion);
+  const closed = inR.filter((s) => s['状態'] === '閉店疑い' || s['状態'] === '閉店');
+  const stale = inR.filter((s) => s['鮮度'] === '要再訪確認' && s['状態'] === '営業中').sort((a, b) => score(b) - score(a));
+  const odd = S.data.visits.filter((v) => !v['日付'] && S.byId[v['店舗ID']] && inRegion(S.byId[v['店舗ID']]));
+  const gone = (S.data.deleted || []).filter((v) => S.byId[v['店舗ID']] && inRegion(S.byId[v['店舗ID']])).reverse();
+  const failed = outbox.filter((o) => o.failed);
+  el.innerHTML = `
+    <h3 style="margin-top:6px">閉店疑い・閉店(${closed.length})</h3>
+    <div class="list">${closed.map((s) => storeItem(s, '<span class="b bad">' + esc(s['状態']) + '</span>')).join('') || '<div class="muted small">なし</div>'}</div>
+    <div class="faint small" style="margin-top:4px">営業しているかは、店のカードの「Googleマップ」で確認できる。まとめて調べるのはチャットのバディに頼んで。</div>
+    <h3>しばらく行ってない店(${stale.length})</h3>
+    <div class="list">${stale.slice(0, 60).map((s) => storeItem(s, s['経過日数'] + '日')).join('') || '<div class="muted small">なし</div>'}</div>
+    ${odd.length ? `<h3>日付を確認したい記録(${odd.length})</h3><div class="list">${odd.map((v) => storeItem(S.byId[v['店舗ID']], '<span class="faint">' + esc(String(v['メモ']).slice(0, 24)) + '</span>')).join('')}</div>` : ''}
+    ${gone.length ? `<h3>消した記録(${gone.length})</h3><div class="list">${gone.map((v) => `<div class="item" data-id="${esc(v['店舗ID'])}">
+      <span class="name">${esc(v['店名'])}<br><span class="faint small">${esc(String(v['日付']).slice(0, 10))} ${yen(v['見込み利益'])} ${esc(String(v['メモ']).slice(0, 30))}</span></span>
+      ${v['送信待ち'] ? '<span class="b warn">送信待ち</span>' : `<button data-restore="${esc(v['訪問ID'])}">戻す</button>`}</div>`).join('')}</div>` : ''}
+    ${failed.length ? `<h3>送れなかった記録(${failed.length})</h3><div class="list">${failed.map((o) => `<div class="item">
+      <span class="name">${esc(opLabel(o))}<br><span class="faint small">${esc(o.failed)}</span></span>
+      <button data-resend="${esc(o.key)}">もう一度送る</button><button class="danger" data-drop="${esc(o.key)}">送らない</button></div>`).join('')}</div>` : ''}`;
+  bindItems(el);
+  el.querySelectorAll('[data-resend]').forEach((b) => {
+    b.onclick = () => { const o = outbox.find((x) => x.key === b.dataset.resend); if (o) { delete o.failed; o.tries = 0; saveOutbox(); applyLocal(o); sendOutbox(); } tabCheck(el); };
+  });
+  el.querySelectorAll('[data-drop]').forEach((b) => {
+    b.onclick = () => { outbox = outbox.filter((x) => x.key !== b.dataset.drop); saveOutbox(); updatePending(); tabCheck(el); };
+  });
+  el.querySelectorAll('[data-restore]').forEach((b) => {
+    b.onclick = async (e) => {
+      e.stopPropagation();
+      b.disabled = true;
+      try {
+        const res = await api('restoreVisit', b.dataset.restore);
+        const nv = withVisitFields(res.visit);
+        S.data.deleted = S.data.deleted.filter((x) => x['訪問ID'] !== b.dataset.restore);
+        S.data.visits.push(nv);
+        S.visitsBy[nv['店舗ID']] = sortVisits((S.visitsBy[nv['店舗ID']] || []).concat([nv]));
+        refreshStats(nv['店舗ID']);
+        toast('記録を戻しました');
+      } catch (err) { b.disabled = false; }
+    };
+  });
+}
+function dropPin(latlng) {
+  if (S.newPin) S.newPin.remove();
+  S.newPin = L.marker(latlng, {
+    draggable: true, zIndexOffset: 3000,
+    icon: L.divIcon({ className: 'pin-new', html: '<span></span>', iconSize: [26, 26], iconAnchor: [13, 32] }),
+  }).addTo(map);
+  S.newPin.on('dragend', () => {
+    const p = S.newPin.getLatLng();
+    S.addPos = { lat: p.lat, lng: p.lng };
+    if ($('#aPos')) $('#aPos').textContent = posText();
+    loadNames();
+  });
+  S.newPin.on('click', (e) => { L.DomEvent.stopPropagation(e); openTab('add', true); });
+  S.addPos = { lat: latlng.lat, lng: latlng.lng };
+  openTab('add', true);
+  focusOn(latlng, Math.max(map.getZoom(), 15));
+  setTimeout(() => { const n = $('#aName'); if (n) n.focus({ preventScroll: true }); }, 50);
+  loadNames();
+}
+async function loadNames() {
+  const p = S.addPos;
+  if (!p) return;
+  const key = p.lat.toFixed(4) + ',' + p.lng.toFixed(4);
+  S.sug = { key, list: null };
+  renderSug();
+  let list = null;
+  try { list = await namesFromBrowser(p.lat, p.lng); } catch (e) { /* 次の手へ */ }
+  if (list === null) {
+    try { list = await call('nearbyNames', [p.lat, p.lng], true); } catch (e) { /* 取れなくても手入力できる */ }
+  }
+  if (S.sug.key !== key) return;
+  S.sug.list = list || [];
+  S.sug.err = list === null;
+  renderSug();
+}
+
+const SHOP_GENRE = {
+  doityourself: 'ホムセン', hardware: 'ホムセン', garden_centre: 'ホムセン', chemist: 'ドラッグストア', pharmacy: 'ドラッグストア',
+  supermarket: 'スーパー', electronics: '家電量販店', appliance: '家電量販店', books: '書店', variety_store: 'ディスカウント',
+  department_store: 'ディスカウント', discount: 'ディスカウント', general: 'ディスカウント', wholesale: 'ディスカウント',
+};
+async function fetchJson(url, opts, ms) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, Object.assign({ signal: ctl.signal }, opts));
+    if (!r.ok) throw new Error(String(r.status));
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+async function namesFromBrowser(lat, lng) {
+  if (window.MOCK) return null;  // ローカルの画面確認では外へ出ない
+  const m = (a) => Math.round(km({ lat, lng }, a) * 1000);
+  try {
+    const q = `[out:json][timeout:10];nwr(around:150,${lat},${lng})["name"]["shop"];out center tags 40;`;
+    const d = await fetchJson('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 9000);
+    const seen = {};
+    return (d.elements || []).map((e) => {
+      const t = e.tags || {};
+      let name = t['name:ja'] || t.name || '';
+      if (t.branch && name.indexOf(t.branch) < 0) name += ' ' + t.branch;
+      const c = e.center || { lat: e.lat, lon: e.lon };
+      return { name, genre: SHOP_GENRE[t.shop] || 'その他', m: m({ lat: c.lat, lng: c.lon }) };
+    }).filter((x) => x.name && !seen[x.name] && (seen[x.name] = true)).sort((a, b) => a.m - b.m).slice(0, 8);
+  } catch (e) {
+    const n = await fetchJson(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=ja&lat=${lat}&lon=${lng}`, {}, 8000);
+    return n && n.name ? [{ name: n.name, genre: SHOP_GENRE[n.type] || 'その他', m: m({ lat: Number(n.lat), lng: Number(n.lon) }) }] : [];
+  }
+}
+function renderSug() {
+  const box = $('#aSug');
+  if (!box || !S.sug) return;
+  if (S.sug.list === null) { box.innerHTML = '<span class="faint small">近くの店名を探しています…</span>'; return; }
+  if (!S.sug.list.length) { box.innerHTML = `<span class="faint small">${S.sug.err ? '店名の候補を取れませんでした' : '近くに店名の候補がありません'}。手で入れてください</span>`; return; }
+  box.innerHTML = '<span class="faint small" style="width:100%">近くの店(OpenStreetMapより。タップで入る)</span>'
+    + S.sug.list.map((x, i) => `<button data-s="${i}">${esc(x.name)} <span class="faint">${x.m}m</span></button>`).join('');
+  box.querySelectorAll('[data-s]').forEach((b) => {
+    b.onclick = () => {
+      const x = S.sug.list[b.dataset.s];
+      $('#aName').value = x.name;
+      const g = $('#aGenre');
+      if ([...g.options].some((o) => o.value === x.genre)) g.value = x.genre;
+      box.querySelectorAll('[data-s]').forEach((y) => y.classList.toggle('on', y === b));
+    };
+  });
+}
+function clearPin() {
+  if (S.newPin) S.newPin.remove();
+  S.newPin = null; S.addPos = null;
+}
+const posText = () => (S.addPos ? '赤いピンの位置で登録します(ピンはドラッグで動かせる)' : '');
+
+function tabAdd(el) {
+  const p = S.addPos;
+  const genres = genreList();
+  if (!p) {
+    el.innerHTML = `<h3 style="margin-top:6px">新しい店を追加</h3>
+      <div class="memo">地図の、店の場所を<b>長押し</b>するとピンが刺さって、ここに登録画面が出ます(PCは右クリック)。</div>
+      <div class="chips" style="margin-top:8px"><button id="aHere">今いる所に刺す</button></div>`;
+    $('#aHere').onclick = async () => { try { const o = await getLocation(); dropPin(o); focusOn(o, 17); } catch (e) { toast(e.message, true); } };
+    return;
+  }
+  el.innerHTML = `<h3 style="margin-top:6px">新しい店を追加</h3>
+    <div class="muted small" id="aPos">${posText()}</div>
+    <h3>店の情報</h3>
+    <input id="aName" style="width:100%" placeholder="店名">
+    <div class="chips" id="aSug" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:6px">
+      <select id="aGenre" class="grow">${genres.map((g) => `<option>${esc(g)}</option>`).join('')}</select>
+      <select id="aRank" class="grow">${['未評価', 'C', 'B', 'A', 'S'].map((r) => `<option>${r === 'S' ? '★S' : r}</option>`).join('')}</select>
+    </div>
+    <textarea id="aMemo" placeholder="基本メモ(駐車場・売り場の特徴など)" style="margin-top:6px"></textarea>
+    <div class="faint small" style="margin-top:4px">県・市区町村は位置から自動で入る</div>
+    <div class="row" style="margin-top:8px"><button id="aCancel">やめる(ピンを消す)</button><span class="grow"></span><button id="aSave" class="primary">追加する</button></div>`;
+  renderSug();
+  $('#aCancel').onclick = () => { clearPin(); tabAdd(el); };
+  $('#aSave').onclick = async () => {
+    const name = $('#aName').value.trim(); if (!name) return toast('店名を入れてください', true);
+    $('#aSave').disabled = true;
+    let s;
+    try {
+      s = await api('addStore', { name, genre: $('#aGenre').value, rank: $('#aRank').value.replace('★', ''), memo: $('#aMemo').value.trim(), lat: S.addPos.lat, lng: S.addPos.lng });
+    } catch (e) { $('#aSave').disabled = false; return; }
+    clearPin();
+    if (areaOf(s) !== S.region && S.region !== '全国') { S.region = areaOf(s); store('region', S.region); }
+    replaceStore(withStats(s));
+    toast(`「${s['店名']}」を追加しました(${s['県']})`); openCard(s['店舗ID']);
+  };
+}
+
+init();
+</script>
+</body>
+</html>
